@@ -104,5 +104,10 @@ contextBridge.exposeInMainWorld('remconAPI', {
       ipcRenderer.on('browser:captureMetadata', listener);
       return () => ipcRenderer.removeListener('browser:captureMetadata', listener);
     },
+    windowTitle: (cb) => {
+      const listener = (_event, title) => cb(title);
+      ipcRenderer.on('browser:windowTitle', listener);
+      return () => ipcRenderer.removeListener('browser:windowTitle', listener);
+    },
   },
 });

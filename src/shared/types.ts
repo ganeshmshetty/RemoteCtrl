@@ -221,6 +221,7 @@ export interface RemconAPI {
     error: (cb: (message: string) => void) => () => void;
     webrtcSignal: (cb: (signal: unknown) => void) => () => void;
     captureMetadata: (cb: (meta: CaptureMetadata) => void) => () => void;
+    windowTitle: (cb: (title: string) => void) => () => void;
   };
 }
 

@@ -41,13 +41,15 @@ function makeIceQueue(pc: RTCPeerConnection) {
 }
 
 // ─── Host-side WebRTC hook ─────────────────────────────────────────────────────
+// Browser is launched by main process on host:start, so this hook only handles
+// desktopCapturer + WebRTC offer. This keeps the browser alive across reconnects.
 
-export function useHostWebRTC(isSessionActive: boolean) {
+export function useHostWebRTC(isSessionActive: boolean, windowTitle: string) {
   const [status, setStatus] = useState<WebRTCStatus>('idle');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isSessionActive) return;
+    if (!isSessionActive || !windowTitle) return;
 
     let cancelled = false;
     let pc: RTCPeerConnection | null = null;
@@ -55,19 +57,13 @@ export function useHostWebRTC(isSessionActive: boolean) {
 
     async function startWebRTC() {
       try {
-        setStatus('launching');
-
-        // 1. Launch Playwright browser
-        const windowTitle = await window.remconAPI.browser.launch();
-
-        if (cancelled) return;
-
-        // 2. Brief wait for OS window to become visible to desktopCapturer
-        await new Promise((r) => setTimeout(r, 1500));
-
         setStatus('capturing');
 
-        // 3. Get capture sources from main process (desktopCapturer runs there)
+        // Brief wait to ensure window is visible to desktopCapturer
+        await new Promise((r) => setTimeout(r, 1000));
+        if (cancelled) return;
+
+        // Get capture sources from main process
         const sources = await window.remconAPI.browser.getSources();
         const source =
           sources.find((s) => s.name.includes(windowTitle)) ??
@@ -78,7 +74,7 @@ export function useHostWebRTC(isSessionActive: boolean) {
         if (!source) throw new Error('Could not find browser capture source');
         if (cancelled) return;
 
-        // 4. Capture via Electron's getUserMedia desktop extension
+        // Capture via Electron desktop extension
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
           video: {
@@ -97,13 +93,11 @@ export function useHostWebRTC(isSessionActive: boolean) {
 
         setStatus('connecting');
 
-        // 5. Create peer connection
         pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
         stream.getTracks().forEach((track) => pc!.addTrack(track, stream));
 
         const iceQueue = makeIceQueue(pc);
 
-        // Outgoing ICE → relay to controller via main → socket
         pc.onicecandidate = (e) => {
           if (e.candidate) {
             window.remconAPI.webrtc.sendSignal({
@@ -113,24 +107,22 @@ export function useHostWebRTC(isSessionActive: boolean) {
           }
         };
 
-        // 6. Listen for controller's answer and ICE candidates
         cleanupSignal = window.remconAPI.on.webrtcSignal(async (raw) => {
           if (cancelled || !pc) return;
           const signal = raw as { type: string; sdp?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit };
           try {
             if (signal.type === 'answer' && signal.sdp) {
               await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
-              await iceQueue.markRemoteSet();  // flush any buffered ICE
+              await iceQueue.markRemoteSet();
               setStatus('streaming');
             } else if (signal.type === 'ice-candidate' && signal.candidate) {
-              await iceQueue.add(signal.candidate);  // buffer if SDP not yet set
+              await iceQueue.add(signal.candidate);
             }
           } catch (err) {
             console.error('[host-webrtc] signal handling error', err);
           }
         });
 
-        // 7. Create and send offer
         const offer = await pc.createOffer({ offerToReceiveAudio: false, offerToReceiveVideo: false });
         await pc.setLocalDescription(offer);
         window.remconAPI.webrtc.sendSignal({ type: 'offer', sdp: pc.localDescription });
@@ -152,11 +144,10 @@ export function useHostWebRTC(isSessionActive: boolean) {
       cleanupSignal?.();
       pc?.close();
       pc = null;
-      window.remconAPI.browser.close().catch(() => {});
       setStatus('idle');
       setError(null);
     };
-  }, [isSessionActive]);
+  }, [isSessionActive, windowTitle]);
 
   return { status, error };
 }
