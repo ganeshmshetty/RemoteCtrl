@@ -3,6 +3,8 @@ import {
   BrowserWindow,
   shell,
   nativeTheme,
+  desktopCapturer,
+  session,
 } from 'electron';
 import path from 'path';
 import { registerIpcHandlers } from './ipc-handlers.js';
@@ -63,6 +65,37 @@ function createWindow() {
 app.whenReady().then(() => {
   const win = createWindow();
   registerIpcHandlers(win);
+
+  // ── Screen capture: modern Electron approach ────────────────────────────
+  // Intercept getDisplayMedia() calls from the renderer and programmatically
+  // select the Playwright browser window (or fall back to first screen).
+  session.defaultSession.setDisplayMediaRequestHandler(async (_request, callback) => {
+    try {
+      const sources = await desktopCapturer.getSources({
+        types: ['window', 'screen'],
+        thumbnailSize: { width: 0, height: 0 },
+      });
+
+      // Try to find the Playwright browser window
+      const target =
+        sources.find((s) => s.name.includes('RemCon Host Browser')) ??
+        sources.find((s) => s.name.toLowerCase().includes('chromium')) ??
+        sources.find((s) => s.name.toLowerCase().includes('chrome')) ??
+        sources.find((s) => s.id.startsWith('screen:')) ??
+        sources[0];
+
+      if (target) {
+        console.log(`[capture] Selected source: "${target.name}" (${target.id})`);
+        callback({ video: target });
+      } else {
+        console.error('[capture] No sources found');
+        callback({});
+      }
+    } catch (err) {
+      console.error('[capture] setDisplayMediaRequestHandler error:', err);
+      callback({});
+    }
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

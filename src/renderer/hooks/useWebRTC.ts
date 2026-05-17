@@ -12,7 +12,7 @@ export type WebRTCStatus = 'idle' | 'launching' | 'capturing' | 'connecting' | '
 /**
  * Queue-flushing wrapper around addIceCandidate.
  * ICE candidates that arrive before setRemoteDescription must be buffered
- * and applied once the remote description is present (standard race condition).
+ * and applied once the remote description is present.
  */
 function makeIceQueue(pc: RTCPeerConnection) {
   const queue: RTCIceCandidateInit[] = [];
@@ -41,8 +41,8 @@ function makeIceQueue(pc: RTCPeerConnection) {
 }
 
 // ─── Host-side WebRTC hook ─────────────────────────────────────────────────────
-// Browser is launched by main process on host:start, so this hook only handles
-// desktopCapturer + WebRTC offer. This keeps the browser alive across reconnects.
+// Uses the modern getDisplayMedia() approach. The main process intercepts this
+// via session.setDisplayMediaRequestHandler and selects the Playwright window.
 
 export function useHostWebRTC(isSessionActive: boolean) {
   const [status, setStatus] = useState<WebRTCStatus>('idle');
@@ -53,58 +53,47 @@ export function useHostWebRTC(isSessionActive: boolean) {
 
     let cancelled = false;
     let pc: RTCPeerConnection | null = null;
+    let stream: MediaStream | null = null;
     let cleanupSignal: (() => void) | undefined;
 
     async function startWebRTC() {
       try {
         setStatus('launching');
 
-        // 1. Launch Playwright browser (or get title if already running)
-        const windowTitle = await window.remconAPI.browser.launch();
-
+        // 1. Launch Playwright browser (reuses if already running)
+        await window.remconAPI.browser.launch();
         if (cancelled) return;
 
-        // 2. Brief wait to ensure window is visible to desktopCapturer
-        await new Promise((r) => setTimeout(r, 1000));
+        // 2. Brief wait for OS window to become visible
+        await new Promise((r) => setTimeout(r, 1500));
         if (cancelled) return;
 
         setStatus('capturing');
 
-        // 3. Get capture sources from main process
-        const sources = await window.remconAPI.browser.getSources();
-        const source =
-          sources.find((s) => s.name.includes(windowTitle)) ??
-          sources.find((s) => s.name.toLowerCase().includes('chromium')) ??
-          sources.find((s) => s.name.toLowerCase().includes('chrome')) ??
-          sources.find((s) => s.id.startsWith('screen:'));
-
-        if (!source) throw new Error('Could not find browser capture source');
-        if (cancelled) return;
-
-        // Capture via Electron desktop extension
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: false,
+        // 3. Use getDisplayMedia — main process intercepts this via
+        //    setDisplayMediaRequestHandler and selects the Playwright window
+        stream = await navigator.mediaDevices.getDisplayMedia({
           video: {
-            // @ts-expect-error — Electron-specific mandatory constraint
-            mandatory: {
-              chromeMediaSource: 'desktop',
-              chromeMediaSourceId: source.id,
-              maxWidth: 1920,
-              maxHeight: 1080,
-              maxFrameRate: 30,
-            },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            frameRate: { ideal: 30 },
           },
+          audio: false,
         });
 
         if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
 
+        console.log('[host-webrtc] Got display stream, tracks:', stream.getTracks().length);
+
         setStatus('connecting');
 
+        // 4. Create peer connection and add tracks
         pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-        stream.getTracks().forEach((track) => pc!.addTrack(track, stream));
+        stream.getTracks().forEach((track) => pc!.addTrack(track, stream!));
 
         const iceQueue = makeIceQueue(pc);
 
+        // Outgoing ICE → relay to controller via signaling
         pc.onicecandidate = (e) => {
           if (e.candidate) {
             window.remconAPI.webrtc.sendSignal({
@@ -114,11 +103,17 @@ export function useHostWebRTC(isSessionActive: boolean) {
           }
         };
 
+        pc.onconnectionstatechange = () => {
+          console.log('[host-webrtc] Connection state:', pc?.connectionState);
+        };
+
+        // 5. Listen for controller's answer and ICE candidates
         cleanupSignal = window.remconAPI.on.webrtcSignal(async (raw) => {
           if (cancelled || !pc) return;
           const signal = raw as { type: string; sdp?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit };
           try {
             if (signal.type === 'answer' && signal.sdp) {
+              console.log('[host-webrtc] Got answer from controller');
               await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
               await iceQueue.markRemoteSet();
               setStatus('streaming');
@@ -130,8 +125,10 @@ export function useHostWebRTC(isSessionActive: boolean) {
           }
         });
 
-        const offer = await pc.createOffer({ offerToReceiveAudio: false, offerToReceiveVideo: false });
+        // 6. Create and send offer
+        const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
+        console.log('[host-webrtc] Sending offer');
         window.remconAPI.webrtc.sendSignal({ type: 'offer', sdp: pc.localDescription });
 
       } catch (err: unknown) {
@@ -149,6 +146,7 @@ export function useHostWebRTC(isSessionActive: boolean) {
     return () => {
       cancelled = true;
       cleanupSignal?.();
+      stream?.getTracks().forEach((t) => t.stop());
       pc?.close();
       pc = null;
       setStatus('idle');
@@ -178,6 +176,7 @@ export function useControllerWebRTC(isSessionActive: boolean) {
     // Remote video track → play in video element
     pc.ontrack = (e) => {
       if (cancelled) return;
+      console.log('[ctrl-webrtc] Got remote track:', e.track.kind);
       if (videoRef.current) {
         videoRef.current.srcObject = e.streams[0];
         videoRef.current.play().catch(() => {});
@@ -185,7 +184,11 @@ export function useControllerWebRTC(isSessionActive: boolean) {
       setStatus('streaming');
     };
 
-    // Outgoing ICE → relay to host via main → socket
+    pc.onconnectionstatechange = () => {
+      console.log('[ctrl-webrtc] Connection state:', pc.connectionState);
+    };
+
+    // Outgoing ICE → relay to host via signaling
     pc.onicecandidate = (e) => {
       if (e.candidate) {
         window.remconAPI.webrtc.sendSignal({
@@ -201,13 +204,15 @@ export function useControllerWebRTC(isSessionActive: boolean) {
       const signal = raw as { type: string; sdp?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit };
       try {
         if (signal.type === 'offer' && signal.sdp) {
+          console.log('[ctrl-webrtc] Got offer, creating answer');
           await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
-          await iceQueue.markRemoteSet();  // flush buffered ICE
+          await iceQueue.markRemoteSet();
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
+          console.log('[ctrl-webrtc] Sending answer');
           window.remconAPI.webrtc.sendSignal({ type: 'answer', sdp: pc.localDescription });
         } else if (signal.type === 'ice-candidate' && signal.candidate) {
-          await iceQueue.add(signal.candidate);  // buffer if SDP not yet set
+          await iceQueue.add(signal.candidate);
         }
       } catch (err) {
         if (!cancelled) {
