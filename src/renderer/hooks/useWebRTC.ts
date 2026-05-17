@@ -7,44 +7,78 @@ const ICE_SERVERS: RTCIceServer[] = [
 
 export type WebRTCStatus = 'idle' | 'launching' | 'capturing' | 'connecting' | 'streaming' | 'error';
 
+// ─── Shared helper ─────────────────────────────────────────────────────────────
+
+/**
+ * Queue-flushing wrapper around addIceCandidate.
+ * ICE candidates that arrive before setRemoteDescription must be buffered
+ * and applied once the remote description is present (standard race condition).
+ */
+function makeIceQueue(pc: RTCPeerConnection) {
+  const queue: RTCIceCandidateInit[] = [];
+  let remoteSet = false;
+
+  async function flush() {
+    while (queue.length) {
+      const c = queue.shift()!;
+      try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (e) { console.warn('[webrtc] addIceCandidate after flush failed', e); }
+    }
+  }
+
+  return {
+    async markRemoteSet() {
+      remoteSet = true;
+      await flush();
+    },
+    async add(candidate: RTCIceCandidateInit) {
+      if (!remoteSet) {
+        queue.push(candidate);
+      } else {
+        try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch (e) { console.warn('[webrtc] addIceCandidate failed', e); }
+      }
+    },
+  };
+}
+
 // ─── Host-side WebRTC hook ─────────────────────────────────────────────────────
 
 export function useHostWebRTC(isSessionActive: boolean) {
   const [status, setStatus] = useState<WebRTCStatus>('idle');
   const [error, setError] = useState<string | null>(null);
-  const pcRef = useRef<RTCPeerConnection | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     if (!isSessionActive) return;
 
     let cancelled = false;
+    let pc: RTCPeerConnection | null = null;
+    let cleanupSignal: (() => void) | undefined;
 
     async function startWebRTC() {
       try {
         setStatus('launching');
 
-        // 1. Launch Playwright browser and get unique window title
+        // 1. Launch Playwright browser
         const windowTitle = await window.remconAPI.browser.launch();
 
         if (cancelled) return;
 
-        // 2. Wait briefly for window to be visible to desktopCapturer
+        // 2. Brief wait for OS window to become visible to desktopCapturer
         await new Promise((r) => setTimeout(r, 1500));
 
         setStatus('capturing');
 
-        // 3. Get all available capture sources from main process
+        // 3. Get capture sources from main process (desktopCapturer runs there)
         const sources = await window.remconAPI.browser.getSources();
         const source =
-          sources.find((s) => s.name.includes(windowTitle)) ??  // exact title match
+          sources.find((s) => s.name.includes(windowTitle)) ??
           sources.find((s) => s.name.toLowerCase().includes('chromium')) ??
           sources.find((s) => s.name.toLowerCase().includes('chrome')) ??
-          sources.find((s) => s.id.startsWith('screen:')); // fallback: primary screen
+          sources.find((s) => s.id.startsWith('screen:'));
 
         if (!source) throw new Error('Could not find browser capture source');
+        if (cancelled) return;
 
-        // 4. Capture the window via getUserMedia (Electron-specific API)
+        // 4. Capture via Electron's getUserMedia desktop extension
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
           video: {
@@ -59,22 +93,17 @@ export function useHostWebRTC(isSessionActive: boolean) {
           },
         });
 
-        if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
+        if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
 
-        streamRef.current = stream;
         setStatus('connecting');
 
-        // 5. Create WebRTC peer connection
-        const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-        pcRef.current = pc;
+        // 5. Create peer connection
+        pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+        stream.getTracks().forEach((track) => pc!.addTrack(track, stream));
 
-        // Add tracks
-        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+        const iceQueue = makeIceQueue(pc);
 
-        // ICE candidates → relay via main → socket
+        // Outgoing ICE → relay to controller via main → socket
         pc.onicecandidate = (e) => {
           if (e.candidate) {
             window.remconAPI.webrtc.sendSignal({
@@ -84,28 +113,28 @@ export function useHostWebRTC(isSessionActive: boolean) {
           }
         };
 
-        // 6. Listen for answer + remote ICE from controller
-        const cleanup = window.remconAPI.on.webrtcSignal(async (raw) => {
+        // 6. Listen for controller's answer and ICE candidates
+        cleanupSignal = window.remconAPI.on.webrtcSignal(async (raw) => {
+          if (cancelled || !pc) return;
           const signal = raw as { type: string; sdp?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit };
           try {
             if (signal.type === 'answer' && signal.sdp) {
               await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+              await iceQueue.markRemoteSet();  // flush any buffered ICE
               setStatus('streaming');
             } else if (signal.type === 'ice-candidate' && signal.candidate) {
-              await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+              await iceQueue.add(signal.candidate);  // buffer if SDP not yet set
             }
           } catch (err) {
-            console.error('[host-webrtc] signal error', err);
+            console.error('[host-webrtc] signal handling error', err);
           }
         });
 
-        // 7. Create offer
+        // 7. Create and send offer
         const offer = await pc.createOffer({ offerToReceiveAudio: false, offerToReceiveVideo: false });
         await pc.setLocalDescription(offer);
-
         window.remconAPI.webrtc.sendSignal({ type: 'offer', sdp: pc.localDescription });
 
-        return cleanup;
       } catch (err: unknown) {
         if (!cancelled) {
           const msg = err instanceof Error ? err.message : String(err);
@@ -116,18 +145,16 @@ export function useHostWebRTC(isSessionActive: boolean) {
       }
     }
 
-    let cleanupFn: (() => void) | undefined;
-    startWebRTC().then((fn) => { cleanupFn = fn; });
+    startWebRTC();
 
     return () => {
       cancelled = true;
-      cleanupFn?.();
-      pcRef.current?.close();
-      pcRef.current = null;
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
+      cleanupSignal?.();
+      pc?.close();
+      pc = null;
       window.remconAPI.browser.close().catch(() => {});
       setStatus('idle');
+      setError(null);
     };
   }, [isSessionActive]);
 
@@ -140,18 +167,17 @@ export function useControllerWebRTC(isSessionActive: boolean) {
   const [status, setStatus] = useState<WebRTCStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const pcRef = useRef<RTCPeerConnection | null>(null);
 
   useEffect(() => {
     if (!isSessionActive) return;
 
     let cancelled = false;
-
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-    pcRef.current = pc;
     setStatus('connecting');
 
-    // Remote track → attach to video element
+    const iceQueue = makeIceQueue(pc);
+
+    // Remote video track → play in video element
     pc.ontrack = (e) => {
       if (cancelled) return;
       if (videoRef.current) {
@@ -161,7 +187,7 @@ export function useControllerWebRTC(isSessionActive: boolean) {
       setStatus('streaming');
     };
 
-    // ICE candidates → relay via main → socket
+    // Outgoing ICE → relay to host via main → socket
     pc.onicecandidate = (e) => {
       if (e.candidate) {
         window.remconAPI.webrtc.sendSignal({
@@ -171,23 +197,26 @@ export function useControllerWebRTC(isSessionActive: boolean) {
       }
     };
 
-    // Listen for offer + remote ICE from host
+    // Receive offer + ICE from host
     const cleanupSignal = window.remconAPI.on.webrtcSignal(async (raw) => {
+      if (cancelled) return;
       const signal = raw as { type: string; sdp?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit };
       try {
         if (signal.type === 'offer' && signal.sdp) {
           await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+          await iceQueue.markRemoteSet();  // flush buffered ICE
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
           window.remconAPI.webrtc.sendSignal({ type: 'answer', sdp: pc.localDescription });
         } else if (signal.type === 'ice-candidate' && signal.candidate) {
-          await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+          await iceQueue.add(signal.candidate);  // buffer if SDP not yet set
         }
       } catch (err) {
         if (!cancelled) {
           const msg = err instanceof Error ? err.message : String(err);
           setError(msg);
           setStatus('error');
+          console.error('[ctrl-webrtc]', msg);
         }
       }
     });
@@ -196,9 +225,9 @@ export function useControllerWebRTC(isSessionActive: boolean) {
       cancelled = true;
       cleanupSignal();
       pc.close();
-      pcRef.current = null;
       if (videoRef.current) videoRef.current.srcObject = null;
       setStatus('idle');
+      setError(null);
     };
   }, [isSessionActive]);
 
