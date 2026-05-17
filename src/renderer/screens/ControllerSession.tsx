@@ -54,7 +54,86 @@ export function ControllerSession() {
   const isConnected = controllerState === 'SESSION_ACTIVE' || controllerState === 'CONTROLLING_REMOTELY';
   const isConnecting = ['SIGNALING_CONNECTING', 'WAITING_FOR_HOST_APPROVAL', 'WEBRTC_CONNECTING'].includes(controllerState);
 
-  const { videoRef, status: rtcStatus } = useControllerWebRTC(isConnected);
+  const { videoRef, status: rtcStatus, sendData } = useControllerWebRTC(isConnected);
+
+  // Phase 3: Input Handling
+  const lastMoveTimeRef = useRef<number>(0);
+
+  // Always compute coords from the video element itself — it's the authoritative
+  // display surface. With object-fit:fill it matches the overlay 1:1.
+  const getCoords = (clientX: number, clientY: number) => {
+    const rect = videoRef.current?.getBoundingClientRect() ?? { left: 0, top: 0, width: 1, height: 1 };
+    return {
+      xPercent: Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)),
+      yPercent: Math.max(0, Math.min(1, (clientY - rect.top) / rect.height)),
+    };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isTakeoverActive) return;
+    const now = Date.now();
+    if (now - lastMoveTimeRef.current < 16) return; // throttle ~60fps
+    lastMoveTimeRef.current = now;
+
+    const { xPercent, yPercent } = getCoords(e.clientX, e.clientY);
+
+    sendData({
+      type: 'REMOTE_INPUT_MOUSE',
+      version: '1.0',
+      timestamp: now,
+      payload: { action: 'move', xPercent, yPercent }
+    }, false);
+  };
+
+  const handleMouseEvent = (e: React.MouseEvent<HTMLDivElement>, action: 'click' | 'down' | 'up') => {
+    if (!isTakeoverActive) return;
+    const { xPercent, yPercent } = getCoords(e.clientX, e.clientY);
+    
+    let button: 'left' | 'middle' | 'right' = 'left';
+    if (e.button === 1) button = 'middle';
+    if (e.button === 2) button = 'right';
+
+    sendData({
+      type: 'REMOTE_INPUT_MOUSE',
+      version: '1.0',
+      timestamp: Date.now(),
+      payload: { action, xPercent, yPercent, button }
+    }, true);
+  };
+
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (!isTakeoverActive) return;
+    const { xPercent, yPercent } = getCoords(e.clientX, e.clientY);
+    
+    sendData({
+      type: 'REMOTE_INPUT_MOUSE',
+      version: '1.0',
+      timestamp: Date.now(),
+      payload: { action: 'scroll', xPercent, yPercent, deltaY: e.deltaY }
+    }, false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!isTakeoverActive) return;
+    e.preventDefault();
+    sendData({
+      type: 'REMOTE_INPUT_KEYBOARD',
+      version: '1.0',
+      timestamp: Date.now(),
+      payload: { action: 'down', key: e.key }
+    }, true);
+  };
+
+  const handleKeyUp = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!isTakeoverActive) return;
+    e.preventDefault();
+    sendData({
+      type: 'REMOTE_INPUT_KEYBOARD',
+      version: '1.0',
+      timestamp: Date.now(),
+      payload: { action: 'up', key: e.key }
+    }, true);
+  };
 
   return (
     <div className="ctrl-root">
@@ -121,7 +200,20 @@ export function ControllerSession() {
                 </div>
               )}
               {/* Takeover overlay — Phase 3: capture mouse/keyboard events */}
-              {isTakeoverActive && <div className="ctrl-takeover-overlay" />}
+              {isTakeoverActive && (
+                <div 
+                  className="ctrl-takeover-overlay"
+                  tabIndex={0}
+                  onMouseMove={handleMouseMove}
+                  onMouseDown={(e) => handleMouseEvent(e, 'down')}
+                  onMouseUp={(e) => handleMouseEvent(e, 'up')}
+                  onWheel={handleWheel}
+                  onKeyDown={handleKeyDown}
+                  onKeyUp={handleKeyUp}
+                  onContextMenu={(e) => e.preventDefault()}
+                  ref={(el) => el?.focus()} // auto focus to capture keyboard
+                />
+              )}
             </>
           ) : (
             <div className="ctrl-connecting">
@@ -233,7 +325,7 @@ export function ControllerSession() {
         .ctrl-video {
           width: 100%;
           height: 100%;
-          object-fit: contain;
+          object-fit: fill;
           display: block;
         }
         .ctrl-video-overlay {
@@ -263,7 +355,7 @@ export function ControllerSession() {
         .ctrl-takeover-overlay {
           position: absolute;
           inset: 0;
-          cursor: crosshair;
+          cursor: none;
           border: 2px solid var(--danger);
         }
         .ctrl-sidebar {

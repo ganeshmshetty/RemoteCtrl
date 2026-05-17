@@ -76,7 +76,7 @@ export const CaptureMetadataSchema = z.object({
 
 // ─── Remote Input Schemas ─────────────────────────────────────────────────────
 
-export const RemoteMouseSchema = z.object({
+export const RemoteMousePayloadSchema = z.object({
   action: z.enum(['move', 'down', 'up', 'click', 'scroll']),
   xPercent: z.number().min(0).max(1),
   yPercent: z.number().min(0).max(1),
@@ -84,7 +84,7 @@ export const RemoteMouseSchema = z.object({
   deltaY: z.number().optional(),
 });
 
-export const RemoteKeyboardSchema = z.object({
+export const RemoteKeyboardPayloadSchema = z.object({
   action: z.enum(['down', 'up', 'press']),
   key: z.string().min(1).max(50),
 });

@@ -6,6 +6,8 @@ import {
   SetSignalingUrlSchema,
   SetPreferredProviderSchema,
   LocalWorkflowSchema,
+  RemoteMousePayloadSchema,
+  RemoteKeyboardPayloadSchema,
 } from '../shared/schemas.js';
 import {
   hasApiKey,
@@ -19,7 +21,7 @@ import {
   deleteWorkflow,
 } from './storage.js';
 import { SignalingClient } from './signaling-client.js';
-import { launchBrowser, closeBrowser, getCaptureMetadata } from './browser-manager.js';
+import { launchBrowser, closeBrowser, getCaptureMetadata, injectMouse, injectKeyboard } from './browser-manager.js';
 
 let signalingClient: SignalingClient | null = null;
 
@@ -144,6 +146,27 @@ export function registerIpcHandlers(win: BrowserWindow) {
       thumbnailSize: { width: 0, height: 0 },
     });
     return sources.map((s) => ({ id: s.id, name: s.name }));
+  });
+
+  ipcMain.handle('browser:injectMouse', async (_e, payload: unknown) => {
+    const parsed = RemoteMousePayloadSchema.safeParse(payload);
+    if (!parsed.success) {
+      console.error('[ipc] Invalid mouse payload:', parsed.error);
+      return;
+    }
+    const meta = getCaptureMetadata();
+    if (meta) {
+      await injectMouse(parsed.data, meta);
+    }
+  });
+
+  ipcMain.handle('browser:injectKeyboard', async (_e, payload: unknown) => {
+    const parsed = RemoteKeyboardPayloadSchema.safeParse(payload);
+    if (!parsed.success) {
+      console.error('[ipc] Invalid keyboard payload:', parsed.error);
+      return;
+    }
+    await injectKeyboard(parsed.data);
   });
 
   ipcMain.handle('browser:resetProfile', async () => {

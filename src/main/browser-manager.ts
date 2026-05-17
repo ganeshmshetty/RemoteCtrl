@@ -1,5 +1,6 @@
 import { chromium } from 'playwright';
 import type { Browser, BrowserContext, Page } from 'playwright';
+import type { RemoteMousePayload, RemoteKeyboardPayload, CaptureMetadata } from '../shared/types.js';
 
 export const BROWSER_TITLE = 'RemCon Host Browser';
 
@@ -64,4 +65,35 @@ export function getCaptureMetadata() {
     deviceScaleFactor: 1,
     contentRect: { x: 0, y: 0, width: vp?.width ?? 1280, height: vp?.height ?? 800 },
   };
+}
+
+export async function injectMouse(payload: RemoteMousePayload, meta: CaptureMetadata) {
+  if (!page) return;
+  const x = payload.xPercent * meta.viewportWidth;
+  const y = payload.yPercent * meta.viewportHeight;
+
+  if (payload.action === 'move') {
+    await page.mouse.move(x, y);
+  } else if (payload.action === 'down') {
+    await page.mouse.move(x, y);
+    await page.mouse.down({ button: payload.button || 'left' });
+  } else if (payload.action === 'up') {
+    await page.mouse.move(x, y);
+    await page.mouse.up({ button: payload.button || 'left' });
+  } else if (payload.action === 'click') {
+    await page.mouse.click(x, y, { button: payload.button || 'left' });
+  } else if (payload.action === 'scroll' && payload.deltaY) {
+    await page.mouse.wheel(0, payload.deltaY);
+  }
+}
+
+export async function injectKeyboard(payload: RemoteKeyboardPayload) {
+  if (!page) return;
+  if (payload.action === 'down') {
+    await page.keyboard.down(payload.key);
+  } else if (payload.action === 'up') {
+    await page.keyboard.up(payload.key);
+  } else if (payload.action === 'press') {
+    await page.keyboard.press(payload.key);
+  }
 }

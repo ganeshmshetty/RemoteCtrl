@@ -30,6 +30,8 @@ contextBridge.exposeInMainWorld('remconAPI', {
     close: () => ipcRenderer.invoke('browser:close'),
     getSources: () => ipcRenderer.invoke('browser:getSources'),
     resetProfile: () => ipcRenderer.invoke('browser:resetProfile'),
+    injectMouse: (payload) => ipcRenderer.invoke('browser:injectMouse', payload),
+    injectKeyboard: (payload) => ipcRenderer.invoke('browser:injectKeyboard', payload),
   },
 
   // ── WebRTC Signal Relay ───────────────────────────────────────────────────

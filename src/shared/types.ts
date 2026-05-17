@@ -193,6 +193,8 @@ export interface RemconAPI {
     close: () => Promise<void>;
     getSources: () => Promise<DesktopSource[]>;
     resetProfile: () => Promise<void>;
+    injectMouse: (payload: RemoteMousePayload) => Promise<void>;
+    injectKeyboard: (payload: RemoteKeyboardPayload) => Promise<void>;
   };
   webrtc: {
     sendSignal: (signal: unknown) => Promise<void>;

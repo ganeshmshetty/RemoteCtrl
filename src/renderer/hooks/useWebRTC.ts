@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { DataChannelMessage } from '../../shared/types';
 
 const ICE_SERVERS: RTCIceServer[] = [
   { urls: 'stun:stun.l.google.com:19302' },
@@ -93,6 +94,26 @@ export function useHostWebRTC(isSessionActive: boolean) {
 
         const iceQueue = makeIceQueue(pc);
 
+        // Data Channels
+        const reliableChannel = pc.createDataChannel('remcon-reliable', { ordered: true });
+        const inputChannel = pc.createDataChannel('remcon-input', { ordered: false, maxRetransmits: 0 });
+
+        const handleDataMessage = async (event: MessageEvent) => {
+          try {
+            const msg = JSON.parse(event.data) as DataChannelMessage;
+            if (msg.type === 'REMOTE_INPUT_MOUSE') {
+              await window.remconAPI.browser.injectMouse(msg.payload as any);
+            } else if (msg.type === 'REMOTE_INPUT_KEYBOARD') {
+              await window.remconAPI.browser.injectKeyboard(msg.payload as any);
+            }
+          } catch (err) {
+            console.error('[host-webrtc] Error handling data channel message:', err);
+          }
+        };
+
+        reliableChannel.onmessage = handleDataMessage;
+        inputChannel.onmessage = handleDataMessage;
+
         // Outgoing ICE → relay to controller via signaling
         pc.onicecandidate = (e) => {
           if (e.candidate) {
@@ -173,6 +194,8 @@ export function useControllerWebRTC(_isSessionActive: boolean) {
   const [status, setStatus] = useState<WebRTCStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const reliableChannelRef = useRef<RTCDataChannel | null>(null);
+  const inputChannelRef = useRef<RTCDataChannel | null>(null);
 
   // Always-on: create PC and listen for signals on mount
   useEffect(() => {
@@ -181,6 +204,15 @@ export function useControllerWebRTC(_isSessionActive: boolean) {
 
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     const iceQueue = makeIceQueue(pc);
+
+    pc.ondatachannel = (e) => {
+      const channel = e.channel;
+      if (channel.label === 'remcon-reliable') {
+        reliableChannelRef.current = channel;
+      } else if (channel.label === 'remcon-input') {
+        inputChannelRef.current = channel;
+      }
+    };
 
     pc.ontrack = (e) => {
       if (cancelled) return;
@@ -248,10 +280,21 @@ export function useControllerWebRTC(_isSessionActive: boolean) {
       cleanupSignal();
       pc.close();
       if (videoRef.current) videoRef.current.srcObject = null;
+      reliableChannelRef.current = null;
+      inputChannelRef.current = null;
       setStatus('idle');
       setError(null);
     };
   }, []); // <-- mount once, always listening
 
-  return { videoRef, status, error };
+  const sendData = (msg: DataChannelMessage, reliable = true) => {
+    const channel = reliable ? reliableChannelRef.current : inputChannelRef.current;
+    if (channel && channel.readyState === 'open') {
+      channel.send(JSON.stringify(msg));
+    } else {
+      console.warn('[ctrl-webrtc] Cannot send data, channel not open');
+    }
+  };
+
+  return { videoRef, status, error, sendData };
 }
