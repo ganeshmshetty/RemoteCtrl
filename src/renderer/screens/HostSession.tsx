@@ -255,7 +255,7 @@ export function HostSession() {
           font-size: 13px;
           color: var(--danger);
         }
-        .session-stop-btn { width: 100%; }
+        .session-stop-btn { align-self: flex-start; }
         .btn {
           display: inline-flex; align-items: center; justify-content: center;
           gap: 6px; height: 36px; padding: 0 16px; border-radius: var(--radius-sm);
@@ -264,7 +264,7 @@ export function HostSession() {
         }
         .btn:active { transform: scale(0.97); }
         .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .btn-danger { background: var(--danger); color: white; flex: 1; }
+        .btn-danger { background: var(--danger); color: white; }
         .btn-danger:hover { background: #dc2626; }
         .btn-danger-outline { background: transparent; color: var(--danger); border: 1px solid rgba(239,68,68,0.4); flex: 1; }
         .btn-danger-outline:hover { background: rgba(239,68,68,0.1); }
