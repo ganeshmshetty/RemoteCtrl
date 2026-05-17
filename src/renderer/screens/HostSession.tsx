@@ -258,8 +258,8 @@ export function HostSession() {
         .session-stop-btn { align-self: flex-start; }
         .btn {
           display: inline-flex; align-items: center; justify-content: center;
-          gap: 6px; height: 36px; padding: 0 16px; border-radius: var(--radius-sm);
-          font-size: 13px; font-weight: 600; cursor: pointer; border: none;
+          gap: 8px; height: 40px; padding: 0 20px; border-radius: var(--radius-sm);
+          font-size: 14px; font-weight: 600; cursor: pointer; border: none;
           transition: background var(--transition), opacity var(--transition), transform var(--transition);
         }
         .btn:active { transform: scale(0.97); }
