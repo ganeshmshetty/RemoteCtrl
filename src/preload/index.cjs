@@ -26,7 +26,15 @@ contextBridge.exposeInMainWorld('remconAPI', {
 
   // ── Browser Controls ──────────────────────────────────────────────────────
   browser: {
+    launch: (startUrl) => ipcRenderer.invoke('browser:launch', startUrl),
+    close: () => ipcRenderer.invoke('browser:close'),
+    getSources: () => ipcRenderer.invoke('browser:getSources'),
     resetProfile: () => ipcRenderer.invoke('browser:resetProfile'),
+  },
+
+  // ── WebRTC Signal Relay ───────────────────────────────────────────────────
+  webrtc: {
+    sendSignal: (signal) => ipcRenderer.invoke('webrtc:sendSignal', signal),
   },
 
   // ── Settings ──────────────────────────────────────────────────────────────
@@ -85,6 +93,16 @@ contextBridge.exposeInMainWorld('remconAPI', {
       const listener = (_event, message) => cb(message);
       ipcRenderer.on('app:error', listener);
       return () => ipcRenderer.removeListener('app:error', listener);
+    },
+    webrtcSignal: (cb) => {
+      const listener = (_event, signal) => cb(signal);
+      ipcRenderer.on('webrtc:signal', listener);
+      return () => ipcRenderer.removeListener('webrtc:signal', listener);
+    },
+    captureMetadata: (cb) => {
+      const listener = (_event, meta) => cb(meta);
+      ipcRenderer.on('browser:captureMetadata', listener);
+      return () => ipcRenderer.removeListener('browser:captureMetadata', listener);
     },
   },
 });

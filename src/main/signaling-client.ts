@@ -17,6 +17,8 @@ export class SignalingClient {
 
   constructor(private readonly win: BrowserWindow) {}
 
+  getRole() { return this.role; }
+
   // ─── Push helpers ────────────────────────────────────────────────────────
 
   private send(channel: string, ...args: unknown[]) {
@@ -62,6 +64,11 @@ export class SignalingClient {
         this.pushError(`Cannot reach signaling server: ${err.message}`);
         this.pushHostState('DISCONNECTED');
         reject(err);
+      });
+
+      // Auto-forward WebRTC signals from socket to renderer
+      socket.on('webrtc:signal', (payload: { signal: unknown }) => {
+        this.send('webrtc:signal', payload.signal);
       });
 
       // Controller joined → show approval modal
@@ -127,6 +134,11 @@ export class SignalingClient {
         this.pushError(`Cannot reach signaling server: ${err.message}`);
         this.pushCtrlState('DISCONNECTED');
         reject(err);
+      });
+
+      // Auto-forward WebRTC signals from socket to renderer
+      socket.on('webrtc:signal', (payload: { signal: unknown }) => {
+        this.send('webrtc:signal', payload.signal);
       });
 
       socket.on('host:approved', () => {

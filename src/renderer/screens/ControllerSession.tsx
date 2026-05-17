@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, MousePointer, Hand, Send, BookOpen, Loader2 } from 'lucide-react';
+import { LogOut, MousePointer, Hand, Send, BookOpen, Loader2, Radio } from 'lucide-react';
 import { useConnectionStore } from '../stores/useConnectionStore';
 import { useAgentStore } from '../stores/useAgentStore';
 import type { ChatMessage } from '../stores/useAgentStore';
+import { useControllerWebRTC } from '../hooks/useWebRTC';
 
 export function ControllerSession() {
   const navigate = useNavigate();
@@ -53,6 +54,8 @@ export function ControllerSession() {
   const isConnected = controllerState === 'SESSION_ACTIVE' || controllerState === 'CONTROLLING_REMOTELY';
   const isConnecting = ['SIGNALING_CONNECTING', 'WAITING_FOR_HOST_APPROVAL', 'WEBRTC_CONNECTING'].includes(controllerState);
 
+  const { videoRef, status: rtcStatus } = useControllerWebRTC(isConnected);
+
   return (
     <div className="ctrl-root">
       {/* Top bar */}
@@ -62,6 +65,9 @@ export function ControllerSession() {
           <span className="ctrl-status-text">
             {isConnecting ? 'Connecting…' : isConnected ? 'Connected' : controllerState === 'DISCONNECTED' ? 'Disconnected' : `PIN ${pin}`}
           </span>
+          {isConnected && rtcStatus === 'streaming' && (
+            <span className="ctrl-live-badge"><Radio size={10} /> Live</span>
+          )}
         </div>
         <div className="ctrl-topbar-right no-drag">
           {/* Takeover toggle */}
@@ -97,13 +103,23 @@ export function ControllerSession() {
             </div>
           ) : isConnected ? (
             <>
-              {/* Phase 2: <video> element goes here */}
-              <div className="ctrl-video-placeholder">
-                <div className="ctrl-video-placeholder-inner">
-                  <Monitor32 />
-                  <div>Video stream will appear here in Phase 2</div>
+              {/* Live video stream from host's Playwright browser */}
+              <video
+                ref={videoRef}
+                className="ctrl-video"
+                autoPlay
+                muted
+                playsInline
+              />
+              {/* Waiting for stream overlay */}
+              {rtcStatus !== 'streaming' && (
+                <div className="ctrl-video-overlay">
+                  <Loader2 size={24} className="animate-spin" />
+                  <div className="ctrl-connecting-text">
+                    {rtcStatus === 'connecting' ? 'Waiting for stream…' : 'Preparing…'}
+                  </div>
                 </div>
-              </div>
+              )}
               {/* Takeover overlay — Phase 3: capture mouse/keyboard events */}
               {isTakeoverActive && <div className="ctrl-takeover-overlay" />}
             </>
@@ -196,6 +212,13 @@ export function ControllerSession() {
         .ctrl-dot-on  { background: var(--success); }
         .ctrl-dot-off { background: var(--text-muted); }
         .ctrl-status-text { font-size: 12px; color: var(--text-secondary); }
+        .ctrl-live-badge {
+          display: inline-flex; align-items: center; gap: 4px;
+          padding: 2px 8px; border-radius: 99px;
+          font-size: 11px; font-weight: 700;
+          background: rgba(34,197,94,0.15); color: var(--success);
+          border: 1px solid rgba(34,197,94,0.3);
+        }
         .ctrl-body {
           flex: 1;
           display: flex;
@@ -207,21 +230,23 @@ export function ControllerSession() {
           background: #05050a;
           overflow: hidden;
         }
-        .ctrl-video-placeholder {
+        .ctrl-video {
           width: 100%;
           height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          object-fit: contain;
+          display: block;
         }
-        .ctrl-video-placeholder-inner {
-          text-align: center;
-          color: var(--text-muted);
-          font-size: 13px;
+        .ctrl-video-overlay {
+          position: absolute;
+          inset: 0;
           display: flex;
           flex-direction: column;
           align-items: center;
+          justify-content: center;
           gap: 12px;
+          background: rgba(5,5,10,0.7);
+          color: var(--text-secondary);
+          backdrop-filter: blur(4px);
         }
         .ctrl-connecting {
           width: 100%;
@@ -347,12 +372,3 @@ function ChatBubble({ msg }: { msg: ChatMessage }) {
   );
 }
 
-function Monitor32() {
-  return (
-    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="3" width="20" height="14" rx="2"/>
-      <line x1="8" y1="21" x2="16" y2="21"/>
-      <line x1="12" y1="17" x2="12" y2="21"/>
-    </svg>
-  );
-}

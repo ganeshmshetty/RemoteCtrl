@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow } from 'electron';
+import { ipcMain, BrowserWindow, desktopCapturer } from 'electron';
 import {
   ApproveControllerSchema,
   ConnectPinSchema,
@@ -19,6 +19,7 @@ import {
   deleteWorkflow,
 } from './storage.js';
 import { SignalingClient } from './signaling-client.js';
+import { launchBrowser, closeBrowser, getCaptureMetadata } from './browser-manager.js';
 
 let signalingClient: SignalingClient | null = null;
 
@@ -112,7 +113,35 @@ export function registerIpcHandlers(win: BrowserWindow) {
 
   // ── Browser ───────────────────────────────────────────────────────────────
 
+  ipcMain.handle('browser:launch', async () => {
+    const title = await launchBrowser();
+    // Push capture metadata to renderer after launch
+    const meta = getCaptureMetadata();
+    if (meta) win.webContents.send('browser:captureMetadata', meta);
+    return title;
+  });
+
+  ipcMain.handle('browser:close', async () => {
+    await closeBrowser();
+  });
+
+  ipcMain.handle('browser:getSources', async () => {
+    const sources = await desktopCapturer.getSources({
+      types: ['window', 'screen'],
+      thumbnailSize: { width: 0, height: 0 },
+    });
+    return sources.map((s) => ({ id: s.id, name: s.name }));
+  });
+
   ipcMain.handle('browser:resetProfile', async () => {
-    console.log('[main] browser:resetProfile — Phase 2 not yet implemented');
+    await closeBrowser();
+    console.log('[main] browser:resetProfile done');
+  });
+
+  // ── WebRTC Signal Relay ───────────────────────────────────────────────────
+
+  ipcMain.handle('webrtc:sendSignal', async (_e, signal: unknown) => {
+    const role = signalingClient?.getRole() ?? 'host';
+    signalingClient?.sendSignal(role as 'host' | 'controller', signal);
   });
 }

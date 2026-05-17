@@ -172,6 +172,11 @@ export interface RemoteKeyboardPayload {
 
 // ─── IPC API Shape (matches preload contextBridge) ────────────────────────────
 
+export interface DesktopSource {
+  id: string;
+  name: string;
+}
+
 export interface RemconAPI {
   host: {
     start: () => Promise<void>;
@@ -184,7 +189,13 @@ export interface RemconAPI {
     disconnect: () => Promise<void>;
   };
   browser: {
+    launch: (startUrl?: string) => Promise<string>;  // returns window title
+    close: () => Promise<void>;
+    getSources: () => Promise<DesktopSource[]>;
     resetProfile: () => Promise<void>;
+  };
+  webrtc: {
+    sendSignal: (signal: unknown) => Promise<void>;
   };
   settings: {
     hasApiKey: (provider: ApiProvider) => Promise<boolean>;
@@ -208,6 +219,8 @@ export interface RemconAPI {
     agentLog: (cb: (payload: AgentLogPayload) => void) => () => void;
     pin: (cb: (pin: string) => void) => () => void;
     error: (cb: (message: string) => void) => () => void;
+    webrtcSignal: (cb: (signal: unknown) => void) => () => void;
+    captureMetadata: (cb: (meta: CaptureMetadata) => void) => () => void;
   };
 }
 

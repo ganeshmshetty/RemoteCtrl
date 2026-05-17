@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Monitor, StopCircle, Users, CheckCircle, XCircle } from 'lucide-react';
+import { Monitor, StopCircle, Users, CheckCircle, XCircle, Radio } from 'lucide-react';
 import { useConnectionStore } from '../stores/useConnectionStore';
+import { useHostWebRTC } from '../hooks/useWebRTC';
 
 const STATE_LABELS: Record<string, string> = {
   IDLE: 'Idle',
@@ -58,6 +59,8 @@ export function HostSession() {
   const isWaiting = hostState === 'WAITING_FOR_CONTROLLER';
   const stateLabel = STATE_LABELS[hostState] ?? hostState;
 
+  const { status: rtcStatus, error: rtcError } = useHostWebRTC(isActive);
+
   return (
     <div className="session-root">
       <div className="drag-region session-titlebar" />
@@ -107,6 +110,18 @@ export function HostSession() {
                   <CheckCircle size={14} /> Approve
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* WebRTC streaming status */}
+          {isActive && (
+            <div className={`session-rtc-badge ${rtcStatus === 'streaming' ? 'rtc-live' : 'rtc-pending'}`}>
+              <Radio size={11} />
+              {rtcStatus === 'streaming' ? 'Live' :
+               rtcStatus === 'launching' ? 'Launching browser…' :
+               rtcStatus === 'capturing' ? 'Starting capture…' :
+               rtcStatus === 'connecting' ? 'Connecting stream…' :
+               rtcStatus === 'error' ? `Stream error: ${rtcError}` : 'Preparing…'}
             </div>
           )}
 
@@ -246,6 +261,25 @@ export function HostSession() {
         .session-approval-actions {
           display: flex;
           gap: 8px;
+        }
+        .session-rtc-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 5px 12px;
+          border-radius: 99px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+        .rtc-live {
+          background: rgba(34,197,94,0.15);
+          color: var(--success);
+          border: 1px solid rgba(34,197,94,0.3);
+        }
+        .rtc-pending {
+          background: var(--bg-overlay);
+          color: var(--text-muted);
+          border: 1px solid var(--border);
         }
         .session-error {
           background: rgba(239,68,68,0.1);
