@@ -44,12 +44,12 @@ function makeIceQueue(pc: RTCPeerConnection) {
 // Browser is launched by main process on host:start, so this hook only handles
 // desktopCapturer + WebRTC offer. This keeps the browser alive across reconnects.
 
-export function useHostWebRTC(isSessionActive: boolean, windowTitle: string) {
+export function useHostWebRTC(isSessionActive: boolean) {
   const [status, setStatus] = useState<WebRTCStatus>('idle');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isSessionActive || !windowTitle) return;
+    if (!isSessionActive) return;
 
     let cancelled = false;
     let pc: RTCPeerConnection | null = null;
@@ -57,13 +57,20 @@ export function useHostWebRTC(isSessionActive: boolean, windowTitle: string) {
 
     async function startWebRTC() {
       try {
-        setStatus('capturing');
+        setStatus('launching');
 
-        // Brief wait to ensure window is visible to desktopCapturer
+        // 1. Launch Playwright browser (or get title if already running)
+        const windowTitle = await window.remconAPI.browser.launch();
+
+        if (cancelled) return;
+
+        // 2. Brief wait to ensure window is visible to desktopCapturer
         await new Promise((r) => setTimeout(r, 1000));
         if (cancelled) return;
 
-        // Get capture sources from main process
+        setStatus('capturing');
+
+        // 3. Get capture sources from main process
         const sources = await window.remconAPI.browser.getSources();
         const source =
           sources.find((s) => s.name.includes(windowTitle)) ??
@@ -147,7 +154,7 @@ export function useHostWebRTC(isSessionActive: boolean, windowTitle: string) {
       setStatus('idle');
       setError(null);
     };
-  }, [isSessionActive, windowTitle]);
+  }, [isSessionActive]);
 
   return { status, error };
 }

@@ -80,11 +80,6 @@ export function registerIpcHandlers(win: BrowserWindow) {
     destroyClient();
     const client = getOrCreateClient(win);
     const url = getSignalingUrl();
-    // Launch Playwright browser here so it stays alive across controller reconnects
-    const title = await launchBrowser();
-    const meta = getCaptureMetadata();
-    if (meta) win.webContents.send('browser:captureMetadata', meta);
-    win.webContents.send('browser:windowTitle', title);
     await client.startHost(url);
   });
 

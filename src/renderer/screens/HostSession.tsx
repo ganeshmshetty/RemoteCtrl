@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Monitor, StopCircle, Users, CheckCircle, XCircle, Radio } from 'lucide-react';
 import { useConnectionStore } from '../stores/useConnectionStore';
@@ -29,14 +29,11 @@ export function HostSession() {
     reset,
   } = useConnectionStore();
 
-  const [windowTitle, setWindowTitle] = useState('');
-
   useEffect(() => {
-    // Browser is launched by main on host:start, receive the window title
-    const unsub = window.remconAPI?.on.windowTitle((t) => setWindowTitle(t));
+    // Trigger host start on mount
     window.remconAPI?.host.start();
     return () => {
-      unsub?.();
+      // Cleanup handled by stop button or disconnect
     };
   }, []);
 
@@ -62,7 +59,7 @@ export function HostSession() {
   const isWaiting = hostState === 'WAITING_FOR_CONTROLLER';
   const stateLabel = STATE_LABELS[hostState] ?? hostState;
 
-  const { status: rtcStatus, error: rtcError } = useHostWebRTC(isActive, windowTitle);
+  const { status: rtcStatus, error: rtcError } = useHostWebRTC(isActive);
 
   return (
     <div className="session-root">

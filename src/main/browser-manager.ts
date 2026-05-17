@@ -8,7 +8,10 @@ let context: BrowserContext | null = null;
 let page: Page | null = null;
 
 export async function launchBrowser(startUrl = 'https://www.google.com'): Promise<string> {
-  if (browser) await closeBrowser();
+  if (browser) {
+    console.log('[browser] Playwright already running, reusing');
+    return BROWSER_TITLE;
+  }
 
   browser = await chromium.launch({
     headless: false,
