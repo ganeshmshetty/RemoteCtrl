@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Monitor, StopCircle, Users, CheckCircle, XCircle, Radio } from 'lucide-react';
+import { Monitor, StopCircle, Users, CheckCircle, XCircle, Radio, Copy, Check } from 'lucide-react';
 import { useConnectionStore } from '../stores/useConnectionStore';
 import { useHostWebRTC } from '../hooks/useWebRTC';
 
@@ -28,6 +28,37 @@ export function HostSession() {
     error,
     reset,
   } = useConnectionStore();
+
+  const [copied, setCopied] = useState(false);
+
+  function handleCopyPin() {
+    if (!pin) return;
+    // Primary: modern clipboard API
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(pin).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(() => {
+        // Fallback: execCommand (works reliably in Electron)
+        copyViaExecCommand(pin, setCopied);
+      });
+    } else {
+      copyViaExecCommand(pin, setCopied);
+    }
+  }
+
+  function copyViaExecCommand(text: string, onDone: (v: boolean) => void) {
+    const el = document.createElement('textarea');
+    el.value = text;
+    el.style.position = 'fixed';
+    el.style.opacity = '0';
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    onDone(true);
+    setTimeout(() => onDone(false), 2000);
+  }
 
   useEffect(() => {
     // Trigger host start on mount
@@ -82,10 +113,19 @@ export function HostSession() {
           {pin && (
             <div className="session-pin-section">
               <div className="session-pin-label">Share this PIN</div>
-              <div className="session-pin">
-                {pin.slice(0, 3)}&nbsp;{pin.slice(3, 6)}&nbsp;{pin.slice(6, 9)}
+              <div className="session-pin-row">
+                <div className="session-pin">
+                  {pin.slice(0, 3)}&nbsp;{pin.slice(3, 6)}&nbsp;{pin.slice(6, 9)}
+                </div>
+                <button
+                  className={`btn-copy ${copied ? 'btn-copy--done' : ''}`}
+                  onClick={handleCopyPin}
+                  title="Copy PIN"
+                >
+                  {copied ? <Check size={14} /> : <Copy size={14} />}
+                </button>
               </div>
-              <div className="session-pin-hint">PIN expires in 10 minutes</div>
+              <div className="session-pin-hint">{copied ? 'Copied to clipboard!' : 'PIN expires in 10 minutes'}</div>
             </div>
           )}
 
@@ -203,6 +243,12 @@ export function HostSession() {
           color: var(--text-muted);
           margin-bottom: 10px;
         }
+        .session-pin-row {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+        }
         .session-pin {
           font-family: var(--font-mono);
           font-size: 36px;
@@ -210,10 +256,35 @@ export function HostSession() {
           letter-spacing: 0.12em;
           color: var(--accent);
         }
+        .btn-copy {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 30px;
+          height: 30px;
+          border-radius: var(--radius-sm);
+          border: 1px solid var(--border);
+          background: var(--bg-elevated);
+          color: var(--text-muted);
+          cursor: pointer;
+          transition: color var(--transition), border-color var(--transition), background var(--transition);
+          flex-shrink: 0;
+        }
+        .btn-copy:hover {
+          color: var(--text-primary);
+          border-color: var(--border-active);
+          background: var(--bg-overlay);
+        }
+        .btn-copy--done {
+          color: var(--success);
+          border-color: rgba(34,197,94,0.4);
+          background: rgba(34,197,94,0.1);
+        }
         .session-pin-hint {
           font-size: 11px;
           color: var(--text-muted);
           margin-top: 8px;
+          transition: color var(--transition);
         }
         .session-status-row {
           display: flex;

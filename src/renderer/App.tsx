@@ -19,8 +19,14 @@ export default function App() {
     if (!window.remconAPI) return; // Running in browser dev mode without Electron
 
     const unsubs = [
-      window.remconAPI.on.hostStateChange((state) => setHostState(state)),
-      window.remconAPI.on.controllerStateChange((state) => setControllerState(state)),
+      window.remconAPI.on.hostStateChange((state) => {
+        window.remconAPI.debugLog(`[app] hostState → ${state}`);
+        setHostState(state);
+      }),
+      window.remconAPI.on.controllerStateChange((state) => {
+        window.remconAPI.debugLog(`[app] controllerState → ${state}`);
+        setControllerState(state);
+      }),
       window.remconAPI.on.controllerJoinRequest((id) => setPendingControllerId(id)),
       window.remconAPI.on.pin((pin) => setPin(pin)),
       window.remconAPI.on.agentStatus((payload) => handleAgentStatus(payload)),

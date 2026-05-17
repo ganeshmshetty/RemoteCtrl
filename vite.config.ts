@@ -12,6 +12,12 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    force: true, // always re-bundle on dev server start
+  },
+  optimizeDeps: {
+    force: true,
+  },
   build: {
     outDir: 'dist/renderer',
     emptyOutDir: true,

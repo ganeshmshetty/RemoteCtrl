@@ -37,6 +37,9 @@ contextBridge.exposeInMainWorld('remconAPI', {
     sendSignal: (signal) => ipcRenderer.invoke('webrtc:sendSignal', signal),
   },
 
+  // ── Debug (logs to terminal via main process) ─────────────────────────────
+  debugLog: (msg) => ipcRenderer.send('debug:log', msg),
+
   // ── Settings ──────────────────────────────────────────────────────────────
   settings: {
     hasApiKey: (provider) => ipcRenderer.invoke('settings:hasApiKey', provider),
@@ -95,7 +98,9 @@ contextBridge.exposeInMainWorld('remconAPI', {
       return () => ipcRenderer.removeListener('app:error', listener);
     },
     webrtcSignal: (cb) => {
-      const listener = (_event, signal) => cb(signal);
+      const listener = (_event, signal) => {
+        cb(signal);
+      };
       ipcRenderer.on('webrtc:signal', listener);
       return () => ipcRenderer.removeListener('webrtc:signal', listener);
     },

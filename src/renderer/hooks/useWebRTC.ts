@@ -110,11 +110,14 @@ export function useHostWebRTC(isSessionActive: boolean) {
         // 5. Listen for controller's answer and ICE candidates
         cleanupSignal = window.remconAPI.on.webrtcSignal(async (raw) => {
           if (cancelled || !pc) return;
-          const signal = raw as { type: string; sdp?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit };
+          const signal = raw as { type: string; sdpType?: string; sdpStr?: string; candidate?: RTCIceCandidateInit };
           try {
-            if (signal.type === 'answer' && signal.sdp) {
+            if (signal.type === 'answer' && signal.sdpStr) {
               console.log('[host-webrtc] Got answer from controller');
-              await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+              await pc.setRemoteDescription(new RTCSessionDescription({
+                type: (signal.sdpType ?? 'answer') as RTCSdpType,
+                sdp: signal.sdpStr,
+              }));
               await iceQueue.markRemoteSet();
               setStatus('streaming');
             } else if (signal.type === 'ice-candidate' && signal.candidate) {
@@ -129,7 +132,12 @@ export function useHostWebRTC(isSessionActive: boolean) {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         console.log('[host-webrtc] Sending offer');
-        window.remconAPI.webrtc.sendSignal({ type: 'offer', sdp: pc.localDescription });
+        // Send plain JSON with SDP as flat strings — nested objects get stripped in socket.io relay
+        window.remconAPI.webrtc.sendSignal({
+          type: 'offer',
+          sdpType: pc.localDescription!.type,
+          sdpStr: pc.localDescription!.sdp,
+        });
 
       } catch (err: unknown) {
         if (!cancelled) {
@@ -158,25 +166,26 @@ export function useHostWebRTC(isSessionActive: boolean) {
 }
 
 // ─── Controller-side WebRTC hook ───────────────────────────────────────────────
+// The PC and signal listener are created on mount (not gated by isSessionActive)
+// so they're always ready when the offer arrives from the host.
 
-export function useControllerWebRTC(isSessionActive: boolean) {
+export function useControllerWebRTC(_isSessionActive: boolean) {
   const [status, setStatus] = useState<WebRTCStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
+  // Always-on: create PC and listen for signals on mount
   useEffect(() => {
-    if (!isSessionActive) return;
-
     let cancelled = false;
-    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-    setStatus('connecting');
+    const log = (msg: string) => window.remconAPI?.debugLog(msg);
+    log('[ctrl-webrtc] Mounting, creating RTCPeerConnection');
 
+    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     const iceQueue = makeIceQueue(pc);
 
-    // Remote video track → play in video element
     pc.ontrack = (e) => {
       if (cancelled) return;
-      console.log('[ctrl-webrtc] Got remote track:', e.track.kind);
+      log(`[ctrl-webrtc] Got remote track: ${e.track.kind}`);
       if (videoRef.current) {
         videoRef.current.srcObject = e.streams[0];
         videoRef.current.play().catch(() => {});
@@ -185,10 +194,9 @@ export function useControllerWebRTC(isSessionActive: boolean) {
     };
 
     pc.onconnectionstatechange = () => {
-      console.log('[ctrl-webrtc] Connection state:', pc.connectionState);
+      log(`[ctrl-webrtc] Connection state: ${pc.connectionState}`);
     };
 
-    // Outgoing ICE → relay to host via signaling
     pc.onicecandidate = (e) => {
       if (e.candidate) {
         window.remconAPI.webrtc.sendSignal({
@@ -198,28 +206,40 @@ export function useControllerWebRTC(isSessionActive: boolean) {
       }
     };
 
-    // Receive offer + ICE from host
     const cleanupSignal = window.remconAPI.on.webrtcSignal(async (raw) => {
       if (cancelled) return;
-      const signal = raw as { type: string; sdp?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit };
+      const signal = raw as {
+        type: string;
+        sdpType?: string; sdpStr?: string;  // flat SDP fields
+        candidate?: RTCIceCandidateInit;
+      };
       try {
-        if (signal.type === 'offer' && signal.sdp) {
-          console.log('[ctrl-webrtc] Got offer, creating answer');
-          await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+        if (signal.type === 'offer' && signal.sdpStr) {
+          log('[ctrl-webrtc] Got offer, calling setRemoteDescription');
+          setStatus('connecting');
+          await pc.setRemoteDescription(new RTCSessionDescription({
+            type: (signal.sdpType ?? 'offer') as RTCSdpType,
+            sdp: signal.sdpStr,
+          }));
+          log('[ctrl-webrtc] setRemoteDescription done, flushing ICE');
           await iceQueue.markRemoteSet();
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
-          console.log('[ctrl-webrtc] Sending answer');
-          window.remconAPI.webrtc.sendSignal({ type: 'answer', sdp: pc.localDescription });
+          log('[ctrl-webrtc] Sending answer');
+          window.remconAPI.webrtc.sendSignal({
+            type: 'answer',
+            sdpType: pc.localDescription!.type,
+            sdpStr: pc.localDescription!.sdp,
+          });
         } else if (signal.type === 'ice-candidate' && signal.candidate) {
           await iceQueue.add(signal.candidate);
         }
       } catch (err) {
         if (!cancelled) {
           const msg = err instanceof Error ? err.message : String(err);
+          log(`[ctrl-webrtc] SIGNAL ERROR: ${msg}`);
           setError(msg);
           setStatus('error');
-          console.error('[ctrl-webrtc]', msg);
         }
       }
     });
@@ -232,7 +252,7 @@ export function useControllerWebRTC(isSessionActive: boolean) {
       setStatus('idle');
       setError(null);
     };
-  }, [isSessionActive]);
+  }, []); // <-- mount once, always listening
 
   return { videoRef, status, error };
 }

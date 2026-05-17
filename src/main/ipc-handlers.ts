@@ -35,6 +35,9 @@ function destroyClient() {
 
 export function registerIpcHandlers(win: BrowserWindow) {
 
+  // ── Debug logging from renderer/preload → terminal ────────────────────────
+  ipcMain.on('debug:log', (_e, msg: string) => console.log(msg));
+
   // ── Settings ──────────────────────────────────────────────────────────────
 
   ipcMain.handle('settings:hasApiKey', async (_e, provider: unknown) => {
@@ -80,7 +83,16 @@ export function registerIpcHandlers(win: BrowserWindow) {
     destroyClient();
     const client = getOrCreateClient(win);
     const url = getSignalingUrl();
-    await client.startHost(url);
+    try {
+      await client.startHost(url);
+    } catch (err) {
+      // signaling-client.ts calls pushError before throwing in known paths,
+      // but guard here in case an unexpected error escapes without notifying.
+      const msg = err instanceof Error ? err.message : String(err);
+      console.log('[host:start] failed:', msg);
+      // Ensure the renderer always sees the error regardless of where it throws
+      if (!win.isDestroyed()) win.webContents.send('app:error', msg);
+    }
   });
 
   ipcMain.handle('host:stop', async () => {
@@ -105,7 +117,12 @@ export function registerIpcHandlers(win: BrowserWindow) {
     destroyClient();
     const client = getOrCreateClient(win);
     const url = getSignalingUrl();
-    await client.connectAsController(url, p);
+    try {
+      await client.connectAsController(url, p);
+    } catch (err) {
+      // pushError already sent to renderer; suppress Electron's unhandled log
+      console.log('[controller:connect] failed:', (err as Error).message);
+    }
   });
 
   ipcMain.handle('controller:disconnect', async () => {
@@ -142,7 +159,12 @@ export function registerIpcHandlers(win: BrowserWindow) {
   // ── WebRTC Signal Relay ───────────────────────────────────────────────────
 
   ipcMain.handle('webrtc:sendSignal', async (_e, signal: unknown) => {
-    const role = signalingClient?.getRole() ?? 'host';
-    signalingClient?.sendSignal(role as 'host' | 'controller', signal);
+    const t = (signal as any)?.type ?? '?';
+    const role = signalingClient?.getRole();
+    console.log(`[ipc] webrtc:sendSignal role=${role ?? '(no client)'}, type=${t}`);
+    // Only relay when a client exists and has a valid role
+    if (signalingClient && (role === 'host' || role === 'controller')) {
+      signalingClient.sendSignal(role, signal);
+    }
   });
 }

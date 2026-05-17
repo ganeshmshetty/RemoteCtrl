@@ -109,17 +109,21 @@ io.on('connection', (socket: Socket) => {
 
   // ── WebRTC signal relay ─────────────────────────────────────────────────
   socket.on('webrtc:signal', (payload: { sender: string; signal: unknown }) => {
+    const sigType = (payload.signal as any)?.type ?? 'unknown';
     // Find the room this socket is in and relay to the other peer
     for (const room of rooms.values()) {
       if (room.hostSocketId === socket.id && room.controllerSocketId) {
+        console.log(`[server] WebRTC signal: host → controller (${sigType})`);
         io.to(room.controllerSocketId).emit('webrtc:signal', payload);
         return;
       }
       if (room.controllerSocketId === socket.id) {
+        console.log(`[server] WebRTC signal: controller → host (${sigType})`);
         io.to(room.hostSocketId).emit('webrtc:signal', payload);
         return;
       }
     }
+    console.log(`[server] WebRTC signal from ${socket.id} has no matching room!`);
   });
 
   // ── Disconnect cleanup ──────────────────────────────────────────────────
