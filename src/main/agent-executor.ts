@@ -116,9 +116,6 @@ export async function runAgentCommand(
       onStatus({ commandId, state: 'failed', error: msg });
     }
   } finally {
-    if (stagehand) {
-      await stagehand.close().catch(() => {});
-    }
     activeCommandId = null;
     cancelRequested = false;
     stagehand = null;

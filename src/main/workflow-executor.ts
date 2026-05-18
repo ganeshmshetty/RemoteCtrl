@@ -158,9 +158,6 @@ export async function runWorkflow(
       onLog({ level: 'error', message: `Workflow error: ${msg}` });
     }
   } finally {
-    if (stagehand) {
-      await stagehand.close().catch(() => {});
-    }
     activeRunId = null;
     cancelRequested = false;
     stagehand = null;

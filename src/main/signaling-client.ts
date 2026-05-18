@@ -126,7 +126,7 @@ export class SignalingClient {
 
   approveController(controllerId: string) {
     this.socket?.emit('host:approve', { controllerId });
-    this.pushHostState('WEBRTC_CONNECTING');
+    this.pushHostState('SESSION_ACTIVE');
   }
 
   rejectController(controllerId: string) {
