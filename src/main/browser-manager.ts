@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import type { Browser, BrowserContext, Page, BrowserServer } from 'playwright';
 import type { RemoteMousePayload, RemoteKeyboardPayload, CaptureMetadata } from '../shared/types.js';
 
-export const BROWSER_TITLE = 'RemCon Host Browser';
+export const BROWSER_TITLE = 'RemoteCtrl Host Browser';
 
 let browserServer: BrowserServer | null = null;
 let browser: Browser | null = null;
@@ -33,7 +33,7 @@ export async function launchBrowser(startUrl = 'https://www.google.com'): Promis
   page = await context.newPage();
 
   // Set a unique title so desktopCapturer can find this window
-  await page.goto(startUrl, { waitUntil: 'domcontentloaded', timeout: 10_000 }).catch(() => {});
+  await page.goto(startUrl, { waitUntil: 'domcontentloaded', timeout: 10_000 }).catch(() => { });
   await page.evaluate(`document.title = ${JSON.stringify(BROWSER_TITLE)}`);
 
   console.log('[browser] Playwright Chromium launched with CDP:', browserServer.wsEndpoint());
@@ -67,7 +67,7 @@ export async function resetProfile(): Promise<void> {
     await page.evaluate(() => {
       localStorage.clear();
       sessionStorage.clear();
-    }).catch(() => {});
+    }).catch(() => { });
   }
 }
 

@@ -11,8 +11,8 @@ export function Diagnostics() {
   async function load() {
     setLoading(true);
     try {
-      if (window.remconAPI) {
-        const d = await window.remconAPI.app.getDiagnostics();
+      if (window.RemoteCtrlAPI) {
+        const d = await window.RemoteCtrlAPI.app.getDiagnostics();
         setData(d);
       }
     } catch (err) {
@@ -46,7 +46,7 @@ export function Diagnostics() {
       <div className="diag-body">
         {data ? (
           <div className="diag-grid">
-            
+
             {/* Status Section */}
             <div className="diag-card">
               <h2 className="diag-card-title"><Settings2 size={14} /> Subsystems</h2>

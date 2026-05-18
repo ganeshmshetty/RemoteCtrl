@@ -1,4 +1,4 @@
-# Remcon
+# RemoteCtrl
 
 Remote browser control desktop app — Electron + React + TypeScript.
 
@@ -60,8 +60,8 @@ npm run build
 
 ## Key Constraints
 
-- Renderer never accesses Node APIs directly — only through `window.remconAPI`
+- Renderer never accesses Node APIs directly — only through `window.RemoteCtrlAPI`
 - All IPC payloads validated with Zod in main process before use
-- API keys stored in `~/.config/remcon/api-keys.json` (never in renderer state)
-- Workflows stored in `~/.config/remcon/workflows.json`
-- Settings stored in `~/.config/remcon/settings.json`
+- API keys stored in `~/.config/RemoteCtrl/api-keys.json` (never in renderer state)
+- Workflows stored in `~/.config/RemoteCtrl/workflows.json`
+- Settings stored in `~/.config/RemoteCtrl/settings.json`

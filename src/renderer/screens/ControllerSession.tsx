@@ -26,7 +26,7 @@ export function ControllerSession() {
 
   useEffect(() => {
     if (pin) {
-      window.remconAPI?.controller.connect(pin);
+      window.RemoteCtrlAPI?.controller.connect(pin);
     }
   }, [pin]);
 
@@ -36,11 +36,11 @@ export function ControllerSession() {
 
   // Load workflow library for "Run on Host" picker
   useEffect(() => {
-    window.remconAPI?.workflows.list().then(setWorkflows).catch(() => {});
+    window.RemoteCtrlAPI?.workflows.list().then(setWorkflows).catch(() => { });
   }, []);
 
   async function handleDisconnect() {
-    await window.remconAPI?.controller.disconnect();
+    await window.RemoteCtrlAPI?.controller.disconnect();
     reset();
     navigate('/');
   }
@@ -79,7 +79,7 @@ export function ControllerSession() {
 
   function handleCancelAgent() {
     sendData({ type: 'AGENT_PROMPT', version: '1.0', timestamp: Date.now(), payload: { commandId: '__cancel__', action: 'act', instruction: '' } }, true);
-    window.remconAPI?.browser.cancelAgent();
+    window.RemoteCtrlAPI?.browser.cancelAgent();
   }
 
   function handleRunWorkflow() {
@@ -156,7 +156,7 @@ export function ControllerSession() {
   const handleMouseEvent = (e: React.MouseEvent<HTMLDivElement>, action: 'click' | 'down' | 'up') => {
     if (!isTakeoverActive) return;
     const { xPercent, yPercent } = getCoords(e.clientX, e.clientY);
-    
+
     let button: 'left' | 'middle' | 'right' = 'left';
     if (e.button === 1) button = 'middle';
     if (e.button === 2) button = 'right';
@@ -172,7 +172,7 @@ export function ControllerSession() {
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     if (!isTakeoverActive) return;
     const { xPercent, yPercent } = getCoords(e.clientX, e.clientY);
-    
+
     sendData({
       type: 'REMOTE_INPUT_MOUSE',
       version: '1.0',
@@ -269,7 +269,7 @@ export function ControllerSession() {
               )}
               {/* Takeover overlay — Phase 3: capture mouse/keyboard events */}
               {isTakeoverActive && (
-                <div 
+                <div
                   className="ctrl-takeover-overlay"
                   tabIndex={0}
                   onMouseMove={handleMouseMove}

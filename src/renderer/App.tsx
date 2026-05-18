@@ -17,16 +17,16 @@ export default function App() {
 
   // Wire Main -> Renderer push events
   useEffect(() => {
-    if (!window.remconAPI) return; // Running in browser dev mode without Electron
+    if (!window.RemoteCtrlAPI) return; // Running in browser dev mode without Electron
 
     const unsubs = [
-      window.remconAPI.on.hostStateChange((state) => setHostState(state)),
-      window.remconAPI.on.controllerStateChange((state) => setControllerState(state)),
-      window.remconAPI.on.controllerJoinRequest((id) => setPendingControllerId(id)),
-      window.remconAPI.on.pin((pin) => setPin(pin)),
-      window.remconAPI.on.agentStatus((payload) => handleAgentStatus(payload)),
-      window.remconAPI.on.agentLog((payload) => handleAgentLog(payload)),
-      window.remconAPI.on.error((msg) => setError(msg)),
+      window.RemoteCtrlAPI.on.hostStateChange((state) => setHostState(state)),
+      window.RemoteCtrlAPI.on.controllerStateChange((state) => setControllerState(state)),
+      window.RemoteCtrlAPI.on.controllerJoinRequest((id) => setPendingControllerId(id)),
+      window.RemoteCtrlAPI.on.pin((pin) => setPin(pin)),
+      window.RemoteCtrlAPI.on.agentStatus((payload) => handleAgentStatus(payload)),
+      window.RemoteCtrlAPI.on.agentLog((payload) => handleAgentLog(payload)),
+      window.RemoteCtrlAPI.on.error((msg) => setError(msg)),
     ];
 
     return () => unsubs.forEach((u) => u());

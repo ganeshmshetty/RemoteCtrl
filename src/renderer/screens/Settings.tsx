@@ -47,7 +47,7 @@ export function Settings() {
   }
 
   async function handleResetBrowser() {
-    await window.remconAPI?.browser.resetProfile();
+    await window.RemoteCtrlAPI?.browser.resetProfile();
     flash('Browser profile reset');
   }
 

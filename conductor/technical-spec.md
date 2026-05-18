@@ -1,6 +1,6 @@
-# Remcon Technical Specification
+# RemoteCtrl Technical Specification
 
-This document details the system contracts, protocols, and state machines required to implement the Remcon ("AnyDesk for Browsers") architecture.
+This document details the system contracts, protocols, and state machines required to implement the RemoteCtrl ("AnyDesk for Browsers") architecture.
 
 ## 1. Signaling Server API (Socket.io)
 
@@ -265,7 +265,7 @@ function handleRemoteMouse(payload, page, metadata) {
 ## 5. Security & Isolation
 
 - **API Keys:** **The Host machine must ALWAYS provide the API key.** The Controller cannot send their key over the network. If the Host does not have an API key configured, agent commands will fail. For the MVP, keys can be stored in a local `.env` or app settings.
-- **Playwright Profile:** We will launch Playwright using `launchPersistentContext` pointing to a dedicated folder (e.g., `~/.remcon/browser-profile`). This prevents the AI from accidentally accessing the user's personal default Chrome profile.
+- **Playwright Profile:** We will launch Playwright using `launchPersistentContext` pointing to a dedicated folder (e.g., `~/.RemoteCtrl/browser-profile`). This prevents the AI from accidentally accessing the user's personal default Chrome profile.
 
 ---
 
@@ -338,8 +338,8 @@ The Host's Main process receives this batch, queues it, and executes the `steps`
 
 ### 7.2 Link Sharing (Autonomous Local Mode)
 Users can share a workflow via a deep link. This uses a Cloud Registry to map a UUID to the JSON payload.
-1. **Creation:** App POSTs `AgentWorkflowPayload` to `api.remcon.app/workflows` -> receives ID `abc-123`.
-2. **Deep Link:** `remcon://workflow/abc-123`
+1. **Creation:** App POSTs `AgentWorkflowPayload` to `api.RemoteCtrl.app/workflows` -> receives ID `abc-123`.
+2. **Deep Link:** `RemoteCtrl://workflow/abc-123`
 3. **Execution (`app.on('open-url')`):**
    - Electron intercepts the URI on startup.
    - It bypasses the Host/Controller selection screen.

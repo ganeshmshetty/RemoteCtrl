@@ -1,8 +1,8 @@
-# Remcon MVP Implementation Plan
+# RemoteCtrl MVP Implementation Plan
 
 ## 1. MVP Objective
 
-Build the first usable version of Remcon: an Electron desktop app where one user can host a visible Playwright browser, another user can connect by PIN, watch the browser over WebRTC, take manual control, and run AI-assisted browser actions on the Host machine.
+Build the first usable version of RemoteCtrl: an Electron desktop app where one user can host a visible Playwright browser, another user can connect by PIN, watch the browser over WebRTC, take manual control, and run AI-assisted browser actions on the Host machine.
 
 The MVP should be strong enough to validate the product loop, not just prove connectivity. It should include local workflow creation/execution because workflows affect the core agent architecture. It should not include cloud workflow sharing or deep-link autonomous mode yet.
 
@@ -30,7 +30,7 @@ The MVP should be strong enough to validate the product loop, not just prove con
 
 - Cloud Registry.
 - Public shared workflow links.
-- `remcon://workflow/...` deep-link execution.
+- `RemoteCtrl://workflow/...` deep-link execution.
 - Autonomous local link-click mode.
 - rrweb deterministic replay.
 - Advanced bot-detection/stealth stack.
@@ -44,7 +44,7 @@ The MVP should be strong enough to validate the product loop, not just prove con
 
 ### 3.1 Host Flow
 
-1. User opens Remcon and selects `Host`.
+1. User opens RemoteCtrl and selects `Host`.
 2. App checks required screen-capture permissions.
 3. App launches a dedicated visible Playwright browser profile.
 4. App registers a PIN with the signaling server.
@@ -56,7 +56,7 @@ The MVP should be strong enough to validate the product loop, not just prove con
 
 ### 3.2 Controller Flow
 
-1. User opens Remcon and selects `Connect`.
+1. User opens RemoteCtrl and selects `Connect`.
 2. User enters the Host PIN.
 3. App joins the signaling room.
 4. Host approves the connection.
@@ -433,7 +433,7 @@ RUNNING
 Expose narrow preload APIs.
 
 ```typescript
-type RemconAPI = {
+type RemoteCtrlAPI = {
   host: {
     start: () => Promise<void>;
     stop: () => Promise<void>;
@@ -629,7 +629,7 @@ Do not implement autonomous deep-link execution in MVP.
 
 Future behavior:
 
-- `remcon://workflow/{id}` opens app.
+- `RemoteCtrl://workflow/{id}` opens app.
 - App fetches workflow from Cloud Registry.
 - App shows mandatory review modal.
 - User explicitly clicks execute.

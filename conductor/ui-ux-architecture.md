@@ -1,6 +1,6 @@
-# Remcon UI/UX Architecture & State Management
+# RemoteCtrl UI/UX Architecture & State Management
 
-This document defines the visual layout, component hierarchy, styling aesthetic, and state management strategy for the Remcon Electron application.
+This document defines the visual layout, component hierarchy, styling aesthetic, and state management strategy for the RemoteCtrl Electron application.
 
 ## 1. Aesthetic & UI Stack
 

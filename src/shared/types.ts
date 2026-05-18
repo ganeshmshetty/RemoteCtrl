@@ -192,7 +192,7 @@ export interface AppDiagnostics {
   appVersion: string;
 }
 
-export interface RemconAPI {
+export interface RemoteCtrlAPI {
   app: {
     getDiagnostics: () => Promise<AppDiagnostics>;
   };
@@ -251,9 +251,9 @@ export interface RemconAPI {
   };
 }
 
-// Extend Window to include remconAPI
+// Extend Window to include RemoteCtrlAPI
 declare global {
   interface Window {
-    remconAPI: RemconAPI;
+    RemoteCtrlAPI: RemoteCtrlAPI;
   }
 }

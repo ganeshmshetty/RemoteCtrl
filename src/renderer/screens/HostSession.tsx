@@ -62,27 +62,27 @@ export function HostSession() {
 
   useEffect(() => {
     // Trigger host start on mount
-    window.remconAPI?.host.start();
+    window.RemoteCtrlAPI?.host.start();
     return () => {
       // Cleanup handled by stop button or disconnect
     };
   }, []);
 
   async function handleStop() {
-    await window.remconAPI?.host.stop();
+    await window.RemoteCtrlAPI?.host.stop();
     reset();
     navigate('/');
   }
 
   async function handleApprove() {
     if (!pendingControllerId) return;
-    await window.remconAPI?.host.approveController(pendingControllerId);
+    await window.RemoteCtrlAPI?.host.approveController(pendingControllerId);
     useConnectionStore.getState().setPendingControllerId(null);
   }
 
   async function handleReject() {
     if (!pendingControllerId) return;
-    await window.remconAPI?.host.rejectController(pendingControllerId);
+    await window.RemoteCtrlAPI?.host.rejectController(pendingControllerId);
     useConnectionStore.getState().setPendingControllerId(null);
   }
 
@@ -158,10 +158,10 @@ export function HostSession() {
             <div className={`session-rtc-badge ${rtcStatus === 'streaming' ? 'rtc-live' : 'rtc-pending'}`}>
               <Radio size={11} />
               {rtcStatus === 'streaming' ? 'Live' :
-               rtcStatus === 'launching' ? 'Launching browser…' :
-               rtcStatus === 'capturing' ? 'Starting capture…' :
-               rtcStatus === 'connecting' ? 'Connecting stream…' :
-               rtcStatus === 'error' ? `Stream error: ${rtcError}` : 'Preparing…'}
+                rtcStatus === 'launching' ? 'Launching browser…' :
+                  rtcStatus === 'capturing' ? 'Starting capture…' :
+                    rtcStatus === 'connecting' ? 'Connecting stream…' :
+                      rtcStatus === 'error' ? `Stream error: ${rtcError}` : 'Preparing…'}
             </div>
           )}
 

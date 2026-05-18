@@ -1,5 +1,5 @@
 {
-  "name": "remcon",
+  "name": "RemoteCtrl",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -18,8 +18,8 @@
     "lint": "eslint ."
   },
   "build": {
-    "appId": "com.remcon.app",
-    "productName": "Remcon",
+    "appId": "com.RemoteCtrl.app",
+    "productName": "RemoteCtrl",
     "directories": {
       "output": "release"
     },

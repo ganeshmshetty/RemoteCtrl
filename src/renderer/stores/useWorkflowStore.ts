@@ -11,7 +11,7 @@ interface WorkflowState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
 
-  // Async thunks (call window.remconAPI under the hood)
+  // Async thunks (call window.RemoteCtrlAPI under the hood)
   loadWorkflows: () => Promise<void>;
   saveWorkflow: (workflow: LocalWorkflow) => Promise<void>;
   deleteWorkflow: (workflowId: string) => Promise<void>;
@@ -29,7 +29,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   loadWorkflows: async () => {
     set({ isLoading: true, error: null });
     try {
-      const workflows = await window.remconAPI.workflows.list();
+      const workflows = await window.RemoteCtrlAPI.workflows.list();
       set({ workflows, isLoading: false });
     } catch (err) {
       set({ error: String(err), isLoading: false });
@@ -38,7 +38,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
   saveWorkflow: async (workflow) => {
     try {
-      await window.remconAPI.workflows.save(workflow);
+      await window.RemoteCtrlAPI.workflows.save(workflow);
       await get().loadWorkflows();
     } catch (err) {
       set({ error: String(err) });
@@ -47,7 +47,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
   deleteWorkflow: async (workflowId) => {
     try {
-      await window.remconAPI.workflows.delete(workflowId);
+      await window.RemoteCtrlAPI.workflows.delete(workflowId);
       set((state) => ({
         workflows: state.workflows.filter((w) => w.id !== workflowId),
       }));
@@ -85,10 +85,10 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     try {
       const [signalingUrl, preferredProvider, hasOpenAIKey, hasAnthropicKey] =
         await Promise.all([
-          window.remconAPI.settings.getSignalingUrl(),
-          window.remconAPI.settings.getPreferredProvider(),
-          window.remconAPI.settings.hasApiKey('openai'),
-          window.remconAPI.settings.hasApiKey('anthropic'),
+          window.RemoteCtrlAPI.settings.getSignalingUrl(),
+          window.RemoteCtrlAPI.settings.getPreferredProvider(),
+          window.RemoteCtrlAPI.settings.hasApiKey('openai'),
+          window.RemoteCtrlAPI.settings.hasApiKey('anthropic'),
         ]);
       set({ signalingUrl, preferredProvider, hasOpenAIKey, hasAnthropicKey, isLoading: false });
     } catch {
@@ -97,17 +97,17 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   },
 
   setSignalingUrl: async (url) => {
-    await window.remconAPI.settings.setSignalingUrl(url);
+    await window.RemoteCtrlAPI.settings.setSignalingUrl(url);
     set({ signalingUrl: url });
   },
 
   setPreferredProvider: async (provider) => {
-    await window.remconAPI.settings.setPreferredProvider(provider);
+    await window.RemoteCtrlAPI.settings.setPreferredProvider(provider);
     set({ preferredProvider: provider });
   },
 
   setApiKey: async (provider, value) => {
-    await window.remconAPI.settings.setApiKey(provider, value);
+    await window.RemoteCtrlAPI.settings.setApiKey(provider, value);
     set(provider === 'openai' ? { hasOpenAIKey: true } : { hasAnthropicKey: true });
   },
 }));

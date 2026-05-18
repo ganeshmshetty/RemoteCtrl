@@ -63,7 +63,7 @@ export function Home() {
             <Wifi size={28} />
           </div>
           <div>
-            <h1 className="home-title">Remcon</h1>
+            <h1 className="home-title">RemoteCtrl</h1>
             <p className="home-subtitle">Remote browser control</p>
           </div>
         </div>

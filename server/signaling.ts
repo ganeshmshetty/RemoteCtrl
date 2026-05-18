@@ -149,5 +149,5 @@ io.on('connection', (socket: Socket) => {
 // ─── Start ────────────────────────────────────────────────────────────────────
 
 httpServer.listen(PORT, () => {
-  console.log(`[server] Remcon signaling server running on port ${PORT}`);
+  console.log(`[server] RemoteCtrl signaling server running on port ${PORT}`);
 });

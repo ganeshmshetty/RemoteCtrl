@@ -66,7 +66,7 @@ export function useHostWebRTC(isSessionActive: boolean) {
         setStatus('launching');
 
         // 1. Launch Playwright browser (reuses if already running)
-        await window.remconAPI.browser.launch();
+        await window.RemoteCtrlAPI.browser.launch();
         if (cancelled) return;
 
         // 2. Brief wait for OS window to become visible
@@ -99,18 +99,18 @@ export function useHostWebRTC(isSessionActive: boolean) {
         const iceQueue = makeIceQueue(pc);
 
         // Data Channels
-        const reliableChannel = pc.createDataChannel('remcon-reliable', { ordered: true });
-        const inputChannel = pc.createDataChannel('remcon-input', { ordered: false, maxRetransmits: 0 });
+        const reliableChannel = pc.createDataChannel('RemoteCtrl-reliable', { ordered: true });
+        const inputChannel = pc.createDataChannel('RemoteCtrl-input', { ordered: false, maxRetransmits: 0 });
 
         const handleDataMessage = async (event: MessageEvent) => {
           try {
             const msg = JSON.parse(event.data) as DataChannelMessage;
             if (msg.type === 'REMOTE_INPUT_MOUSE') {
-              await window.remconAPI.browser.injectMouse(msg.payload as any);
+              await window.RemoteCtrlAPI.browser.injectMouse(msg.payload as any);
             } else if (msg.type === 'REMOTE_INPUT_KEYBOARD') {
-              await window.remconAPI.browser.injectKeyboard(msg.payload as any);
+              await window.RemoteCtrlAPI.browser.injectKeyboard(msg.payload as any);
             } else if (msg.type === 'AGENT_PROMPT') {
-              const res = await window.remconAPI.browser.startAgent(msg.payload as any);
+              const res = await window.RemoteCtrlAPI.browser.startAgent(msg.payload as any);
               if (!res.ok) {
                 const errMsg: DataChannelMessage = {
                   type: 'AGENT_STATUS_UPDATE',
@@ -125,7 +125,7 @@ export function useHostWebRTC(isSessionActive: boolean) {
                 reliableChannel.send(JSON.stringify(errMsg));
               }
             } else if (msg.type === 'AGENT_WORKFLOW_BATCH') {
-              const res = await window.remconAPI.browser.startWorkflow(msg.payload as any);
+              const res = await window.RemoteCtrlAPI.browser.startWorkflow(msg.payload as any);
               if (!res.ok) {
                 const errMsg: DataChannelMessage = {
                   type: 'WORKFLOW_RUN_STATUS',
@@ -140,7 +140,7 @@ export function useHostWebRTC(isSessionActive: boolean) {
                 reliableChannel.send(JSON.stringify(errMsg));
               }
             } else if (msg.type === 'WORKFLOW_CANCEL') {
-              await window.remconAPI.browser.cancelWorkflow();
+              await window.RemoteCtrlAPI.browser.cancelWorkflow();
             }
           } catch (err) {
             console.error('[host-webrtc] Error handling data channel message:', err);
@@ -151,7 +151,7 @@ export function useHostWebRTC(isSessionActive: boolean) {
         inputChannel.onmessage = handleDataMessage;
 
         // Forward agent status/log events from Main process back to Controller
-        cleanupAgentStatus = window.remconAPI.on.agentStatus((payload) => {
+        cleanupAgentStatus = window.RemoteCtrlAPI.on.agentStatus((payload) => {
           if (reliableChannel.readyState === 'open') {
             reliableChannel.send(JSON.stringify({
               type: 'AGENT_STATUS_UPDATE',
@@ -161,7 +161,7 @@ export function useHostWebRTC(isSessionActive: boolean) {
             } satisfies DataChannelMessage));
           }
         });
-        cleanupAgentLog = window.remconAPI.on.agentLog((payload) => {
+        cleanupAgentLog = window.RemoteCtrlAPI.on.agentLog((payload) => {
           if (reliableChannel.readyState === 'open') {
             reliableChannel.send(JSON.stringify({
               type: 'AGENT_LOG',
@@ -173,7 +173,7 @@ export function useHostWebRTC(isSessionActive: boolean) {
         });
 
         // Relay workflow status events back to Controller
-        cleanupWorkflowRunStatus = window.remconAPI.on.workflowRunStatus((payload) => {
+        cleanupWorkflowRunStatus = window.RemoteCtrlAPI.on.workflowRunStatus((payload) => {
           if (reliableChannel.readyState === 'open') {
             reliableChannel.send(JSON.stringify({
               type: 'WORKFLOW_RUN_STATUS',
@@ -183,7 +183,7 @@ export function useHostWebRTC(isSessionActive: boolean) {
             } satisfies DataChannelMessage));
           }
         });
-        cleanupWorkflowStepStatus = window.remconAPI.on.workflowStepStatus((payload) => {
+        cleanupWorkflowStepStatus = window.RemoteCtrlAPI.on.workflowStepStatus((payload) => {
           if (reliableChannel.readyState === 'open') {
             reliableChannel.send(JSON.stringify({
               type: 'WORKFLOW_STEP_STATUS',
@@ -197,7 +197,7 @@ export function useHostWebRTC(isSessionActive: boolean) {
         // Outgoing ICE → relay to controller via signaling
         pc.onicecandidate = (e) => {
           if (e.candidate) {
-            window.remconAPI.webrtc.sendSignal({
+            window.RemoteCtrlAPI.webrtc.sendSignal({
               type: 'ice-candidate',
               candidate: e.candidate.toJSON(),
             });
@@ -209,7 +209,7 @@ export function useHostWebRTC(isSessionActive: boolean) {
         };
 
         // 5. Listen for controller's answer and ICE candidates
-        cleanupSignal = window.remconAPI.on.webrtcSignal(async (raw) => {
+        cleanupSignal = window.RemoteCtrlAPI.on.webrtcSignal(async (raw) => {
           if (cancelled || !pc) return;
           const signal = raw as { type: string; sdpType?: string; sdpStr?: string; candidate?: RTCIceCandidateInit };
           try {
@@ -234,7 +234,7 @@ export function useHostWebRTC(isSessionActive: boolean) {
         await pc.setLocalDescription(offer);
         console.log('[host-webrtc] Sending offer');
         // Send plain JSON with SDP as flat strings — nested objects get stripped in socket.io relay
-        window.remconAPI.webrtc.sendSignal({
+        window.RemoteCtrlAPI.webrtc.sendSignal({
           type: 'offer',
           sdpType: pc.localDescription!.type,
           sdpStr: pc.localDescription!.sdp,
@@ -292,7 +292,7 @@ export function useControllerWebRTC(_isSessionActive: boolean) {
 
     pc.ondatachannel = (e) => {
       const channel = e.channel;
-      if (channel.label === 'remcon-reliable') {
+      if (channel.label === 'RemoteCtrl-reliable') {
         reliableChannelRef.current = channel;
         channel.onmessage = (ev) => {
           try {
@@ -300,7 +300,7 @@ export function useControllerWebRTC(_isSessionActive: boolean) {
             onMessageRef.current?.(msg);
           } catch { /* ignore malformed */ }
         };
-      } else if (channel.label === 'remcon-input') {
+      } else if (channel.label === 'RemoteCtrl-input') {
         inputChannelRef.current = channel;
       }
     };
@@ -310,7 +310,7 @@ export function useControllerWebRTC(_isSessionActive: boolean) {
       console.log(`[ctrl-webrtc] Got remote track: ${e.track.kind}`);
       if (videoRef.current) {
         videoRef.current.srcObject = e.streams[0];
-        videoRef.current.play().catch(() => {});
+        videoRef.current.play().catch(() => { });
       }
       setStatus('streaming');
     };
@@ -321,14 +321,14 @@ export function useControllerWebRTC(_isSessionActive: boolean) {
 
     pc.onicecandidate = (e) => {
       if (e.candidate) {
-        window.remconAPI.webrtc.sendSignal({
+        window.RemoteCtrlAPI.webrtc.sendSignal({
           type: 'ice-candidate',
           candidate: e.candidate.toJSON(),
         });
       }
     };
 
-    const cleanupSignal = window.remconAPI.on.webrtcSignal(async (raw) => {
+    const cleanupSignal = window.RemoteCtrlAPI.on.webrtcSignal(async (raw) => {
       if (cancelled) return;
       const signal = raw as {
         type: string;
@@ -348,7 +348,7 @@ export function useControllerWebRTC(_isSessionActive: boolean) {
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
           console.log('[ctrl-webrtc] Sending answer');
-          window.remconAPI.webrtc.sendSignal({
+          window.RemoteCtrlAPI.webrtc.sendSignal({
             type: 'answer',
             sdpType: pc.localDescription!.type,
             sdpStr: pc.localDescription!.sdp,

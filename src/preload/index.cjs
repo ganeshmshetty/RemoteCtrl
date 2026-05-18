@@ -7,7 +7,7 @@ const { contextBridge, ipcRenderer } = require('electron');
  * Expose narrow typed API to renderer.
  * Never expose raw ipcRenderer — only specific, named channels.
  */
-contextBridge.exposeInMainWorld('remconAPI', {
+contextBridge.exposeInMainWorld('RemoteCtrlAPI', {
   // ── Host Controls ──────────────────────────────────────────────────────────
   host: {
     start: () => ipcRenderer.invoke('host:start'),
@@ -47,7 +47,7 @@ contextBridge.exposeInMainWorld('remconAPI', {
   app: {
     getDiagnostics: () => ipcRenderer.invoke('app:getDiagnostics'),
   },
-  
+
   // ── Settings ──────────────────────────────────────────────────────────────
   settings: {
     hasApiKey: (provider) => ipcRenderer.invoke('settings:hasApiKey', provider),

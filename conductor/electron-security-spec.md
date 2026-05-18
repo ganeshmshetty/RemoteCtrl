@@ -1,6 +1,6 @@
 # Electron Security & Cross-Platform Permissions
 
-Because Remcon operates a browser via AI and streams screens peer-to-peer, strict security boundaries and explicit OS-level permissions are mandatory. This document defines the security architecture for multi-device deployment.
+Because RemoteCtrl operates a browser via AI and streams screens peer-to-peer, strict security boundaries and explicit OS-level permissions are mandatory. This document defines the security architecture for multi-device deployment.
 
 ## 1. Electron IPC & Context Isolation
 
@@ -19,7 +19,7 @@ The Preload script is the ONLY way the UI communicates with the Main process.
 // preload.ts
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('remconAPI', {
+contextBridge.exposeInMainWorld('RemoteCtrlAPI', {
   // Host Controls
   startStagehand: (payload) => ipcRenderer.invoke('start-stagehand', payload),
   injectMouse: (coords) => ipcRenderer.send('inject-mouse', coords),

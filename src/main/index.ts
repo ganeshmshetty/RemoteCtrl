@@ -81,7 +81,7 @@ app.whenReady().then(() => {
 
       // Try to find the Playwright browser window
       const target =
-        sources.find((s) => s.name.includes('RemCon Host Browser')) ??
+        sources.find((s) => s.name.includes('RemoteCtrl Host Browser')) ??
         sources.find((s) => s.name.toLowerCase().includes('chromium')) ??
         sources.find((s) => s.name.toLowerCase().includes('chrome')) ??
         sources.find((s) => s.id.startsWith('screen:')) ??
@@ -119,7 +119,7 @@ app.on('window-all-closed', () => {
 app.on('before-quit', async () => {
   cancelAgentCommand();
   cancelWorkflow();
-  await closeBrowser().catch(() => {});
+  await closeBrowser().catch(() => { });
 });
 
 // Security: block navigation away from the app
