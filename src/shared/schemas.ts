@@ -99,7 +99,7 @@ export const RemoteKeyboardPayloadSchema = z.object({
 // ─── Persisted Settings File Schema ──────────────────────────────────────────
 
 export const PersistedSettingsSchema = z.object({
-  signalingUrl: z.string().url().default('http://localhost:3001'),
+  signalingUrl: z.string().url().default('https://remotectrl-signaling.onrender.com'),
   preferredProvider: ApiProviderSchema.default('openai'),
   // API keys are stored in a separate secure store — not in this file
 });
