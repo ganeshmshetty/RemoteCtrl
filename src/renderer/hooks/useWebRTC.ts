@@ -128,6 +128,13 @@ export function useHostWebRTC(isSessionActive: boolean) {
               await window.RemoteCtrlAPI.browser.injectKeyboard(msg.payload as any);
             } else if (msg.type === 'SWITCH_TAB') {
               await window.RemoteCtrlAPI.browser.switchTab((msg.payload as any).tabId);
+            } else if (msg.type === 'BROWSER_ACTION') {
+              const payload = msg.payload as any;
+              if (payload.action === 'goBack') await window.RemoteCtrlAPI.browser.goBack();
+              else if (payload.action === 'goForward') await window.RemoteCtrlAPI.browser.goForward();
+              else if (payload.action === 'reload') await window.RemoteCtrlAPI.browser.reload();
+              else if (payload.action === 'navigate' && payload.url) await window.RemoteCtrlAPI.browser.navigate(payload.url);
+              else if (payload.action === 'closeTab' && payload.tabId) await window.RemoteCtrlAPI.browser.closeTab(payload.tabId);
             } else if (msg.type === 'AGENT_PROMPT') {
               const payload = msg.payload as any;
               if (payload.commandId === '__cancel__') {

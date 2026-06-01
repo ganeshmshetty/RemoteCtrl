@@ -30,7 +30,7 @@ import { launchBrowser, closeBrowser, getCaptureMetadata, injectMouse, injectKey
 import { runAgentCommand, cancelAgentCommand, isAgentRunning } from './agent-executor.js';
 import { runWorkflow, cancelWorkflow, isWorkflowRunning } from './workflow-executor.js';
 import { setScreencastWindow } from './screencast.js';
-import { setBrowserNotifyWindow, getTabs, switchTab } from './browser-manager.js';
+import { setBrowserNotifyWindow, getTabs, switchTab, goBack, goForward, reload, navigate, closeTab } from './browser-manager.js';
 import type { AgentWorkflowBatchPayload } from '../shared/types.js';
 
 let signalingClient: SignalingClient | null = null;
@@ -221,6 +221,35 @@ function registerIpcHandlers() {
       return { ok: false, error: 'Invalid tabId: must be a non-empty string' };
     }
     await switchTab(tabId);
+    return { ok: true };
+  });
+
+  ipcMain.handle('browser:goBack', async () => {
+    await goBack();
+    return { ok: true };
+  });
+
+  ipcMain.handle('browser:goForward', async () => {
+    await goForward();
+    return { ok: true };
+  });
+
+  ipcMain.handle('browser:reload', async () => {
+    await reload();
+    return { ok: true };
+  });
+
+  ipcMain.handle('browser:navigate', async (_e, url: unknown) => {
+    if (typeof url === 'string' && url) {
+      await navigate(url);
+    }
+    return { ok: true };
+  });
+
+  ipcMain.handle('browser:closeTab', async (_e, tabId: unknown) => {
+    if (typeof tabId === 'string' && tabId) {
+      await closeTab(tabId);
+    }
     return { ok: true };
   });
 

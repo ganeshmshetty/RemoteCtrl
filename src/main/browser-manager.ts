@@ -49,6 +49,35 @@ export async function switchTab(tabId: string): Promise<void> {
   }
 }
 
+export async function goBack(): Promise<void> {
+  if (activePageEntry) await activePageEntry.page.goBack().catch(() => {});
+}
+
+export async function goForward(): Promise<void> {
+  if (activePageEntry) await activePageEntry.page.goForward().catch(() => {});
+}
+
+export async function reload(): Promise<void> {
+  if (activePageEntry) await activePageEntry.page.reload().catch(() => {});
+}
+
+export async function navigate(url: string): Promise<void> {
+  if (activePageEntry) {
+    let targetUrl = url;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      targetUrl = 'https://' + url;
+    }
+    await activePageEntry.page.goto(targetUrl).catch(() => {});
+  }
+}
+
+export async function closeTab(tabId: string): Promise<void> {
+  const targetEntry = pages.find(p => p.id === tabId);
+  if (targetEntry) {
+    await targetEntry.page.close().catch(() => {});
+  }
+}
+
 function registerPage(p: Page) {
   const entry: PageEntry = { id: crypto.randomUUID(), page: p, title: 'Loading...' };
   pages.push(entry);

@@ -38,6 +38,11 @@ contextBridge.exposeInMainWorld('RemoteCtrlAPI', {
     cancelWorkflow: () => ipcRenderer.invoke('browser:cancelWorkflow'),
     getTabs: () => ipcRenderer.invoke('browser:getTabs'),
     switchTab: (tabId) => ipcRenderer.invoke('browser:switchTab', tabId),
+    goBack: () => ipcRenderer.invoke('browser:goBack'),
+    goForward: () => ipcRenderer.invoke('browser:goForward'),
+    reload: () => ipcRenderer.invoke('browser:reload'),
+    navigate: (url) => ipcRenderer.invoke('browser:navigate', url),
+    closeTab: (tabId) => ipcRenderer.invoke('browser:closeTab', tabId),
   },
 
   // ── WebRTC Signal Relay ───────────────────────────────────────────────────

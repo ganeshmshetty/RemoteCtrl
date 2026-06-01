@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, MousePointer, Hand, Send, BookOpen, Loader2, Radio, X, Play, StopCircle, ChevronRight, LayoutPanelTop } from 'lucide-react';
+import { LogOut, MousePointer, Hand, Send, BookOpen, Loader2, Radio, X, Play, StopCircle, ChevronRight, ChevronLeft, RotateCw } from 'lucide-react';
 import { useConnectionStore } from '../stores/useConnectionStore';
 import { useAgentStore } from '../stores/useAgentStore';
 import type { ChatMessage } from '../stores/useAgentStore';
@@ -21,7 +21,15 @@ export function ControllerSession() {
   const [showWorkflowPicker, setShowWorkflowPicker] = useState(false);
   const [selectedWorkflow, setSelectedWorkflow] = useState<LocalWorkflow | null>(null);
   const [tabs, setTabs] = useState<TabInfo[]>([]);
+  const [urlInput, setUrlInput] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const activeTab = tabs.find(t => t.active);
+    if (activeTab && activeTab.url !== urlInput) {
+      setUrlInput(activeTab.url);
+    }
+  }, [tabs]);
 
   const pin = (location.state as { pin?: string })?.pin ?? '';
 
@@ -56,6 +64,15 @@ export function ControllerSession() {
       version: '1.0',
       timestamp: Date.now(),
       payload: { tabId },
+    }, true);
+  }
+
+  function handleBrowserAction(action: 'goBack' | 'goForward' | 'reload' | 'navigate' | 'closeTab', tabId?: string) {
+    sendData({
+      type: 'BROWSER_ACTION',
+      version: '1.0',
+      timestamp: Date.now(),
+      payload: { action, url: urlInput, tabId },
     }, true);
   }
 
@@ -280,21 +297,40 @@ export function ControllerSession() {
           {/* Tab Strip */}
           {isConnected && tabs.length > 0 && (
             <div className="ctrl-tab-strip">
-              <LayoutPanelTop size={12} className="ctrl-tab-icon" />
+              <div className="ctrl-nav-btns">
+                <button className="ctrl-nav-btn" onClick={() => handleBrowserAction('goBack')} title="Go back"><ChevronLeft size={14} /></button>
+                <button className="ctrl-nav-btn" onClick={() => handleBrowserAction('goForward')} title="Go forward"><ChevronRight size={14} /></button>
+                <button className="ctrl-nav-btn" onClick={() => handleBrowserAction('reload')} title="Reload"><RotateCw size={12} /></button>
+              </div>
+              <form 
+                className="ctrl-address-bar"
+                onSubmit={(e) => { e.preventDefault(); handleBrowserAction('navigate'); }}
+              >
+                <input 
+                  type="text" 
+                  value={urlInput}
+                  onChange={e => setUrlInput(e.target.value)}
+                  className="ctrl-url-input"
+                  placeholder="Enter URL..."
+                />
+              </form>
               <div className="ctrl-tabs">
                 {tabs.map((tab) => (
-                  <button
+                  <div
                     key={tab.id}
                     className={`ctrl-tab ${tab.active ? 'ctrl-tab-active' : ''}`}
                     onClick={() => handleSwitchTab(tab.id)}
                     title={tab.url}
                   >
                     <span className="ctrl-tab-title">{tab.title}</span>
-                  </button>
+                    <button className="ctrl-tab-close" onClick={(e) => { e.stopPropagation(); handleBrowserAction('closeTab', tab.id); }}><X size={10} /></button>
+                  </div>
                 ))}
               </div>
             </div>
           )}
+
+          <div className="ctrl-video-container">
 
           {isConnecting ? (
             <div className="ctrl-connecting">
@@ -348,6 +384,7 @@ export function ControllerSession() {
               </div>
             </div>
           )}
+          </div>
         </div>
 
         {/* Sidebar */}
@@ -537,8 +574,17 @@ export function ControllerSession() {
         }
         .ctrl-video-pane {
           flex: 1;
-          position: relative;
+          display: flex;
+          flex-direction: column;
           background: #05050a;
+          overflow: hidden;
+        }
+        .ctrl-video-container {
+          flex: 1;
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           overflow: hidden;
         }
         .ctrl-video {
@@ -563,22 +609,57 @@ export function ControllerSession() {
           backdrop-filter: blur(4px);
         }
         .ctrl-tab-strip {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
           height: 36px;
-          background: rgba(5,5,10,0.85);
-          backdrop-filter: blur(8px);
+          background: var(--bg-surface);
           border-bottom: 1px solid var(--border);
           display: flex;
           align-items: center;
           padding: 0 12px;
           gap: 12px;
+          flex-shrink: 0;
           z-index: 10;
         }
-        .ctrl-tab-icon {
-          color: var(--text-muted);
+        .ctrl-nav-btns {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .ctrl-nav-btn {
+          background: transparent;
+          border: none;
+          color: var(--text-secondary);
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: var(--radius-sm);
+          cursor: pointer;
+          transition: background var(--transition);
+        }
+        .ctrl-nav-btn:hover {
+          background: var(--bg-overlay);
+          color: var(--text-primary);
+        }
+        .ctrl-address-bar {
+          flex: 1;
+          max-width: 400px;
+          display: flex;
+        }
+        .ctrl-url-input {
+          width: 100%;
+          height: 24px;
+          background: var(--bg-overlay);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          color: var(--text-primary);
+          padding: 0 10px;
+          font-size: 11px;
+          outline: none;
+          transition: border-color var(--transition);
+        }
+        .ctrl-url-input:focus {
+          border-color: var(--accent);
         }
         .ctrl-tabs {
           display: flex;
@@ -599,9 +680,10 @@ export function ControllerSession() {
           cursor: pointer;
           white-space: nowrap;
           max-width: 200px;
+          min-width: 80px;
           overflow: hidden;
-          text-overflow: ellipsis;
           transition: all var(--transition);
+          gap: 6px;
         }
         .ctrl-tab:hover {
           background: var(--bg-overlay);
@@ -613,8 +695,26 @@ export function ControllerSession() {
           border-color: var(--border);
         }
         .ctrl-tab-title {
+          flex: 1;
           overflow: hidden;
           text-overflow: ellipsis;
+        }
+        .ctrl-tab-close {
+          background: transparent;
+          border: none;
+          color: var(--text-muted);
+          width: 16px;
+          height: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          cursor: pointer;
+          padding: 0;
+        }
+        .ctrl-tab-close:hover {
+          background: rgba(255,255,255,0.1);
+          color: var(--text-primary);
         }
         .ctrl-connecting {
           width: 100%;
@@ -631,7 +731,7 @@ export function ControllerSession() {
         .ctrl-takeover-overlay {
           position: absolute;
           inset: 0;
-          cursor: none;
+          cursor: default;
           border: 2px solid var(--danger);
         }
         .ctrl-sidebar {

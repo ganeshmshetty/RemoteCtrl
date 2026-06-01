@@ -156,7 +156,8 @@ export type MessageType =
   | 'TAKEOVER_REQUEST'
   | 'TAKEOVER_RELEASE'
   | 'REMOTE_INPUT_MOUSE'
-  | 'REMOTE_INPUT_KEYBOARD';
+  | 'REMOTE_INPUT_KEYBOARD'
+  | 'BROWSER_ACTION';
 
 export interface DataChannelMessage<T = unknown> {
   type: MessageType;
@@ -230,6 +231,11 @@ export interface RemoteCtrlAPI {
     cancelWorkflow: () => Promise<{ ok: boolean }>;
     getTabs: () => Promise<TabInfo[]>;
     switchTab: (tabId: string) => Promise<void>;
+    goBack: () => Promise<void>;
+    goForward: () => Promise<void>;
+    reload: () => Promise<void>;
+    navigate: (url: string) => Promise<void>;
+    closeTab: (tabId: string) => Promise<void>;
   };
   webrtc: {
     sendSignal: (signal: unknown) => Promise<void>;
