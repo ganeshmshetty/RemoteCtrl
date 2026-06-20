@@ -1,5 +1,5 @@
 import { chromium } from 'playwright';
-import type { Browser, BrowserContext, Page, BrowserServer } from 'playwright';
+import type { Browser, BrowserContext, Page } from 'playwright';
 import type { RemoteMousePayload, RemoteKeyboardPayload, CaptureMetadata, TabInfo } from '../shared/types.js';
 import { startScreencast, stopScreencast } from './screencast.js';
 import { getBrowserMode } from './storage.js';
@@ -13,12 +13,17 @@ interface PageEntry {
   title: string;
 }
 
-let browserServer: BrowserServer | null = null;
+// CDP port used in internal mode so Stagehand can connect via raw CDP.
+// A port distinct from local Chrome (9222) to avoid conflicts.
+const INTERNAL_CDP_PORT = 9223;
+
 let browser: Browser | null = null;
 let context: BrowserContext | null = null;
 let pages: PageEntry[] = [];
 let activePageEntry: PageEntry | null = null;
 let notifyWindow: BrowserWindow | null = null;
+/** Resolved ws:// debugger URL passed to Stagehand — populated on launch. */
+let cdpWsUrl: string | null = null;
 
 export function setBrowserNotifyWindow(win: BrowserWindow) {
   notifyWindow = win;
@@ -106,6 +111,33 @@ function registerPage(p: Page) {
   return entry;
 }
 
+/**
+ * Polls the Chrome DevTools HTTP endpoint until the browser exposes its
+ * WebSocket debugger URL, then returns that ws:// URL.
+ * Chrome's root path returns 404; /json/version has what we need.
+ */
+async function resolveCdpWsUrl(httpBase: string, maxWaitMs = 8000): Promise<string> {
+  const versionUrl = `${httpBase}/json/version`;
+  const deadline = Date.now() + maxWaitMs;
+  let lastErr = '';
+  while (Date.now() < deadline) {
+    try {
+      const resp = await fetch(versionUrl);
+      if (resp.ok) {
+        const data = await resp.json() as { webSocketDebuggerUrl?: string };
+        if (data.webSocketDebuggerUrl) {
+          console.log(`[browser] CDP WS endpoint resolved: ${data.webSocketDebuggerUrl}`);
+          return data.webSocketDebuggerUrl;
+        }
+      }
+    } catch (e) {
+      lastErr = String(e);
+    }
+    await new Promise(r => setTimeout(r, 250));
+  }
+  throw new Error(`CDP endpoint ${versionUrl} not ready after ${maxWaitMs}ms. Last error: ${lastErr}`);
+}
+
 export async function launchBrowser(startUrl = 'https://www.google.com'): Promise<string> {
   if (browser) {
     console.log('[browser] Playwright already running, reusing');
@@ -123,23 +155,27 @@ export async function launchBrowser(startUrl = 'https://www.google.com'): Promis
       if (!context) {
          context = await browser.newContext();
       }
+      // Resolve the actual ws:// debugger URL for Stagehand
+      cdpWsUrl = await resolveCdpWsUrl('http://localhost:9222');
     } catch (err) {
       console.error('[browser] Failed to connect to local Chrome. Make sure it is running with --remote-debugging-port=9222', err);
       throw new Error('Failed to connect to local Chrome on port 9222.');
     }
   } else {
-    console.log('[browser] Launching internal visible browser...');
-    browserServer = await chromium.launchServer({
+    console.log(`[browser] Launching internal visible browser on CDP port ${INTERNAL_CDP_PORT}...`);
+    browser = await chromium.launch({
       headless: false,
       args: [
+        `--remote-debugging-port=${INTERNAL_CDP_PORT}`,
         '--window-size=1280,800',
         '--window-position=100,100',
       ],
     });
-    browser = await chromium.connect(browserServer.wsEndpoint());
     context = await browser.newContext({
       viewport: { width: 1280, height: 800 },
     });
+    // Resolve the actual ws:// URL from the CDP HTTP endpoint
+    cdpWsUrl = await resolveCdpWsUrl(`http://127.0.0.1:${INTERNAL_CDP_PORT}`);
   }
 
   // Flag: true while launchBrowser is setting up the first page so that the
@@ -191,13 +227,12 @@ export async function closeBrowser(): Promise<void> {
   try {
     await context?.close();
     await browser?.close();
-    await browserServer?.close();
   } catch {
     // ignore close errors
   }
-  browserServer = null;
   browser = null;
   context = null;
+  cdpWsUrl = null;
   pages = [];
   activePageEntry = null;
   console.log('[browser] Playwright Chromium closed');
@@ -205,7 +240,14 @@ export async function closeBrowser(): Promise<void> {
 
 export function getPage(): Page | null { return activePageEntry?.page || null; }
 export function isBrowserRunning(): boolean { return browser !== null; }
-export function getCdpUrl(): string | null { return browserServer?.wsEndpoint() ?? null; }
+
+/**
+ * Returns the raw CDP WebSocket URL Stagehand needs to connect to the browser.
+ * Populated after launchBrowser() resolves by polling /json/version.
+ */
+export function getCdpUrl(): string | null {
+  return cdpWsUrl;
+}
 
 export async function resetProfile(): Promise<void> {
   if (context) {

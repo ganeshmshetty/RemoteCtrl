@@ -10,6 +10,7 @@ export function Settings() {
     preferredProvider,
     hasOpenAIKey,
     hasAnthropicKey,
+    hasGeminiKey,
     loadSettings,
     setSignalingUrl,
     setPreferredProvider,
@@ -18,10 +19,12 @@ export function Settings() {
 
   const [openAIInput, setOpenAIInput] = useState('');
   const [anthropicInput, setAnthropicInput] = useState('');
+  const [geminiInput, setGeminiInput] = useState('');
   const [signalingInput, setSignalingInput] = useState('');
   const [browserMode, setBrowserMode] = useState('internal');
   const [showOpenAI, setShowOpenAI] = useState(false);
   const [showAnthropic, setShowAnthropic] = useState(false);
+  const [showGemini, setShowGemini] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
 
   useEffect(() => {
@@ -35,7 +38,8 @@ export function Settings() {
     if (!value.trim()) return;
     await setApiKey(provider, value.trim());
     if (provider === 'openai') setOpenAIInput('');
-    else setAnthropicInput('');
+    else if (provider === 'anthropic') setAnthropicInput('');
+    else setGeminiInput('');
     flash('Key saved');
   }
 
@@ -161,13 +165,39 @@ export function Settings() {
               </button>
             </div>
           </SettingField>
+
+          <SettingField label="Gemini API Key" status={hasGeminiKey ? 'Configured' : 'Not set'} hasKey={hasGeminiKey}>
+            <div className="settings-input-row">
+              <div className="settings-input-wrap">
+                <input
+                  type={showGemini ? 'text' : 'password'}
+                  className="settings-input"
+                  placeholder={hasGeminiKey ? '••••••••••••••••' : 'AIzaSy...'}
+                  value={geminiInput}
+                  onChange={(e) => setGeminiInput(e.target.value)}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <button className="settings-eye-btn" onClick={() => setShowGemini(!showGemini)}>
+                  {showGemini ? <EyeOff size={13} /> : <Eye size={13} />}
+                </button>
+              </div>
+              <button
+                className="btn btn-primary"
+                disabled={!geminiInput.trim()}
+                onClick={() => handleSaveApiKey('gemini', geminiInput)}
+              >
+                Save
+              </button>
+            </div>
+          </SettingField>
         </Section>
 
         {/* Model Preference */}
         <Section icon={<Cpu size={15} />} title="Model Preference">
           <SettingField label="Preferred Provider" status="">
             <div className="settings-radio-group">
-              {(['openai', 'anthropic'] as ApiProvider[]).map((p) => (
+              {(['openai', 'anthropic', 'gemini'] as ApiProvider[]).map((p) => (
                 <label key={p} className="settings-radio">
                   <input
                     type="radio"
@@ -177,7 +207,7 @@ export function Settings() {
                     onChange={() => setPreferredProvider(p)}
                   />
                   <span className="settings-radio-label">
-                    {p === 'openai' ? 'OpenAI (GPT-4o)' : 'Anthropic (Claude)'}
+                    {p === 'openai' ? 'OpenAI (GPT-4o)' : p === 'anthropic' ? 'Anthropic (Claude)' : 'Gemini (3.1 Flash Lite Preview)'}
                   </span>
                 </label>
               ))}

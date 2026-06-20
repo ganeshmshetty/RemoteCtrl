@@ -64,6 +64,7 @@ interface SettingsState {
   preferredProvider: ApiProvider;
   hasOpenAIKey: boolean;
   hasAnthropicKey: boolean;
+  hasGeminiKey: boolean;
   isLoading: boolean;
 
   // Actions
@@ -78,19 +79,21 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   preferredProvider: 'openai',
   hasOpenAIKey: false,
   hasAnthropicKey: false,
+  hasGeminiKey: false,
   isLoading: false,
 
   loadSettings: async () => {
     set({ isLoading: true });
     try {
-      const [signalingUrl, preferredProvider, hasOpenAIKey, hasAnthropicKey] =
+      const [signalingUrl, preferredProvider, hasOpenAIKey, hasAnthropicKey, hasGeminiKey] =
         await Promise.all([
           window.RemoteCtrlAPI.settings.getSignalingUrl(),
           window.RemoteCtrlAPI.settings.getPreferredProvider(),
           window.RemoteCtrlAPI.settings.hasApiKey('openai'),
           window.RemoteCtrlAPI.settings.hasApiKey('anthropic'),
+          window.RemoteCtrlAPI.settings.hasApiKey('gemini'),
         ]);
-      set({ signalingUrl, preferredProvider, hasOpenAIKey, hasAnthropicKey, isLoading: false });
+      set({ signalingUrl, preferredProvider, hasOpenAIKey, hasAnthropicKey, hasGeminiKey, isLoading: false });
     } catch {
       set({ isLoading: false });
     }
@@ -108,6 +111,6 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 
   setApiKey: async (provider, value) => {
     await window.RemoteCtrlAPI.settings.setApiKey(provider, value);
-    set(provider === 'openai' ? { hasOpenAIKey: true } : { hasAnthropicKey: true });
+    set(provider === 'openai' ? { hasOpenAIKey: true } : provider === 'anthropic' ? { hasAnthropicKey: true } : { hasGeminiKey: true });
   },
 }));

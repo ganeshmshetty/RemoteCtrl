@@ -30,7 +30,7 @@ export interface SharedWorkflowRecord {
 
 // ─── Settings Types ────────────────────────────────────────────────────────────
 
-export type ApiProvider = 'openai' | 'anthropic';
+export type ApiProvider = 'openai' | 'anthropic' | 'gemini';
 export type BrowserMode = 'internal' | 'local_chrome';
 
 export interface AppSettings {
@@ -197,6 +197,7 @@ export interface AppDiagnostics {
   signalingRole: string | null;
   hasOpenAIKey: boolean;
   hasAnthropicKey: boolean;
+  hasGeminiKey: boolean;
   preferredProvider: string;
   platform: string;
   electronVersion: string;

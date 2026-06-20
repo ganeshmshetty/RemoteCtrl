@@ -64,6 +64,7 @@ export function Diagnostics() {
               <div className="diag-list">
                 <StatusItem label="OpenAI (GPT-4o)" ok={data.hasOpenAIKey} />
                 <StatusItem label="Anthropic (Claude)" ok={data.hasAnthropicKey} />
+                <StatusItem label="Gemini" ok={data.hasGeminiKey} />
                 <div className="diag-item">
                   <span className="diag-item-label">Preferred Provider</span>
                   <span className="diag-item-value">{data.preferredProvider}</span>

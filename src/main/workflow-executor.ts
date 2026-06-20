@@ -37,6 +37,36 @@ export function cancelWorkflow(): void {
   if (activeRunId) cancelRequested = true;
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Safely extract a human-readable message + stack from any thrown value. */
+function extractError(err: unknown): { ui: string; terminal: string } {
+  if (err instanceof Error) {
+    return { ui: err.message, terminal: err.stack ?? err.message };
+  }
+  try {
+    const s = JSON.stringify(err);
+    const t = s !== '{}' ? s : String(err);
+    return { ui: t, terminal: t };
+  } catch {
+    return { ui: String(err), terminal: String(err) };
+  }
+}
+
+/** Emit a log both to the terminal and to the renderer via callback. */
+function emit(
+  onLog: WorkflowLogCb,
+  level: AgentLogPayload['level'],
+  message: string,
+  prefix = '[Workflow]',
+) {
+  const line = `${prefix} ${message}`;
+  if (level === 'error') console.error(line);
+  else if (level === 'warn') console.warn(line);
+  else console.log(line);
+  onLog({ level, message });
+}
+
 // ─── Main executor ────────────────────────────────────────────────────────────
 
 export async function runWorkflow(
@@ -48,84 +78,84 @@ export async function runWorkflow(
   const { workflowRunId, name, startUrl, steps } = payload;
 
   if (activeRunId) {
-    onRunStatus({
-      workflowRunId,
-      state: 'failed',
-      error: `Another workflow (${activeRunId}) is already running.`,
-    });
+    const msg = `Another workflow (${activeRunId}) is already running.`;
+    emit(onLog, 'warn', msg);
+    onRunStatus({ workflowRunId, state: 'failed', error: msg });
     return;
   }
 
   const page = getPage();
   const cdpUrl = getCdpUrl();
   if (!page || !cdpUrl) {
-    onRunStatus({ workflowRunId, state: 'failed', error: 'Host browser is not active.' });
+    const msg = 'Host browser is not active. Launch a browser first.';
+    emit(onLog, 'error', msg);
+    onRunStatus({ workflowRunId, state: 'failed', error: msg });
     return;
   }
 
   const provider = getPreferredProvider();
   const apiKey = getApiKey(provider);
   if (!apiKey) {
-    onRunStatus({
-      workflowRunId,
-      state: 'failed',
-      error: `No API key for provider "${provider}". Configure it in Settings.`,
-    });
+    const msg = `No API key for provider "${provider}". Configure it in Settings.`;
+    emit(onLog, 'error', msg);
+    onRunStatus({ workflowRunId, state: 'failed', error: msg });
     return;
   }
+
+  const modelName =
+    provider === 'anthropic'
+      ? 'anthropic/claude-sonnet-4-6'
+      : provider === 'gemini'
+      ? 'google/gemini-3.1-flash-lite-preview'
+      : 'openai/gpt-4o';
 
   activeRunId = workflowRunId;
   cancelRequested = false;
 
   onRunStatus({ workflowRunId, state: 'running', currentStepIndex: 0 });
-  onLog({ level: 'info', message: `Workflow "${name}" started (${steps.length} steps)` });
+  emit(onLog, 'info', `Workflow "${name}" started — ${steps.length} step(s), model="${modelName}"`);
 
   let stagehand: Stagehand | null = null;
 
   try {
+    emit(onLog, 'info', `Connecting to local browser via CDP: ${cdpUrl}`);
+
     stagehand = new Stagehand({
       env: 'LOCAL',
       localBrowserLaunchOptions: { cdpUrl },
-      model: {
-        modelName: provider === 'anthropic' ? 'claude-sonnet-4-6' : 'gpt-4o',
-        apiKey,
-      },
+      model: { modelName, apiKey },
       logger: (line: any) => {
-        onLog({
-          level: (line.level || 'info') as AgentLogPayload['level'],
-          message: line.message ?? String(line),
-        });
+        const level = (line.level || 'info') as AgentLogPayload['level'];
+        const msg: string = line.message ?? (typeof line === 'object' ? JSON.stringify(line) : String(line));
+        emit(onLog, level, msg, '[Stagehand]');
       },
-      verbose: 1,
+      verbose: 2,
     });
 
+    emit(onLog, 'info', 'Initialising Stagehand...');
     await stagehand.init();
+    emit(onLog, 'info', 'Stagehand ready.');
 
     // Navigate to startUrl if provided
     if (startUrl) {
-      onLog({ level: 'info', message: `Navigating to ${startUrl}` });
-      await page.goto(startUrl, { waitUntil: 'domcontentloaded', timeout: 15_000 }).catch((e) => {
-        onLog({ level: 'warn', message: `Navigation warning: ${e.message}` });
+      emit(onLog, 'info', `Navigating to ${startUrl}`);
+      await page.goto(startUrl, { waitUntil: 'domcontentloaded', timeout: 15_000 }).catch((e: Error) => {
+        emit(onLog, 'warn', `Navigation warning: ${e.message}`);
       });
     }
 
     // Execute steps sequentially
     for (let i = 0; i < steps.length; i++) {
       if (cancelRequested) {
-        onLog({ level: 'info', message: `Workflow cancelled before step ${i + 1}` });
+        emit(onLog, 'info', `Workflow cancelled before step ${i + 1}`);
         onRunStatus({ workflowRunId, state: 'cancelled' });
         return;
       }
 
       const step = steps[i];
-      onRunStatus({
-        workflowRunId,
-        state: 'running',
-        currentStepId: step.id,
-        currentStepIndex: i,
-      });
+      emit(onLog, 'info', `━━ Step ${i + 1}/${steps.length}: action="${step.action}" instruction="${step.instruction}"`);
+      onRunStatus({ workflowRunId, state: 'running', currentStepId: step.id, currentStepIndex: i });
       onStepStatus({ workflowRunId, stepId: step.id, index: i, state: 'running' });
-      onLog({ level: 'info', message: `Step ${i + 1}/${steps.length}: ${step.action} — "${step.instruction}"` });
 
       try {
         const result = await executeStep(stagehand!, page, step.action, step.instruction);
@@ -136,32 +166,69 @@ export async function runWorkflow(
           return;
         }
 
+        emit(onLog, 'info', `✓ Step ${i + 1} completed. Result: ${JSON.stringify(result)}`);
         onStepStatus({ workflowRunId, stepId: step.id, index: i, state: 'completed', result });
-        onLog({ level: 'info', message: `Step ${i + 1} completed` });
       } catch (stepErr) {
-        const msg = stepErr instanceof Error ? stepErr.message : String(stepErr);
-        onStepStatus({ workflowRunId, stepId: step.id, index: i, state: 'failed', error: msg });
-        onLog({ level: 'error', message: `Step ${i + 1} failed: ${msg}` });
-        onRunStatus({ workflowRunId, state: 'failed', error: `Step ${i + 1} failed: ${msg}` });
-        return; // Stop on first failure (no continueOnError in MVP)
+        const { ui, terminal } = extractError(stepErr);
+        emit(onLog, 'error', `✗ Step ${i + 1} failed:\n${terminal}`);
+        onStepStatus({ workflowRunId, stepId: step.id, index: i, state: 'failed', error: ui });
+        onRunStatus({ workflowRunId, state: 'failed', error: `Step ${i + 1}: ${ui}` });
+        return; // Stop on first failure
       }
     }
 
+    emit(onLog, 'info', `Workflow "${name}" completed successfully ✓`);
     onRunStatus({ workflowRunId, state: 'completed' });
-    onLog({ level: 'info', message: `Workflow "${name}" completed successfully` });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    const { ui, terminal } = extractError(err);
     if (cancelRequested) {
+      emit(onLog, 'info', 'Workflow cancelled.');
       onRunStatus({ workflowRunId, state: 'cancelled' });
     } else {
-      onRunStatus({ workflowRunId, state: 'failed', error: msg });
-      onLog({ level: 'error', message: `Workflow error: ${msg}` });
+      emit(onLog, 'error', `Workflow failed:\n${terminal}`);
+      onRunStatus({ workflowRunId, state: 'failed', error: ui });
     }
   } finally {
     activeRunId = null;
     cancelRequested = false;
     stagehand = null;
   }
+}
+
+// ─── Navigation intent detection ────────────────────────────────────────────
+
+const SITE_MAP: Record<string, string> = {
+  youtube: 'https://www.youtube.com',
+  google: 'https://www.google.com',
+  gmail: 'https://mail.google.com',
+  github: 'https://github.com',
+  twitter: 'https://twitter.com',
+  x: 'https://x.com',
+  facebook: 'https://www.facebook.com',
+  instagram: 'https://www.instagram.com',
+  linkedin: 'https://www.linkedin.com',
+  reddit: 'https://www.reddit.com',
+  amazon: 'https://www.amazon.com',
+  netflix: 'https://www.netflix.com',
+  wikipedia: 'https://www.wikipedia.org',
+  chatgpt: 'https://chatgpt.com',
+  notion: 'https://www.notion.so',
+  figma: 'https://www.figma.com',
+  stackoverflow: 'https://stackoverflow.com',
+  maps: 'https://maps.google.com',
+};
+
+function detectNavigationUrl(instruction: string): string | null {
+  const nav = instruction
+    .trim()
+    .match(/^(?:open|go to|navigate to|visit|browse to|load|take me to)\s+(.+)$/i);
+  if (!nav) return null;
+  const target = nav[1].trim().toLowerCase().replace(/[./:]+$/, '');
+  if (SITE_MAP[target]) return SITE_MAP[target];
+  const raw = nav[1].trim();
+  if (/^https?:\/\//.test(raw)) return raw;
+  if (/^[\w-]+\.[\w.-]+/.test(raw)) return `https://${raw}`;
+  return `https://www.google.com/search?q=${encodeURIComponent(raw)}`;
 }
 
 // ─── Private helpers ──────────────────────────────────────────────────────────
@@ -176,14 +243,26 @@ async function executeStep(
   let timeoutId: NodeJS.Timeout;
 
   const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error(`Step timed out after ${STEP_TIMEOUT_MS / 1000}s`)), STEP_TIMEOUT_MS);
+    timeoutId = setTimeout(
+      () => reject(new Error(`Step timed out after ${STEP_TIMEOUT_MS / 1000}s`)),
+      STEP_TIMEOUT_MS,
+    );
   });
 
   const work = (async () => {
-    if (action === 'act') return await sh.act(instruction, { page });
+    if (action === 'act') {
+      // Handle navigation intents directly — sh.act() can only interact with DOM elements
+      const navUrl = detectNavigationUrl(instruction);
+      if (navUrl) {
+        console.log(`[Workflow] Navigation intent detected → ${navUrl}`);
+        await page.goto(navUrl, { waitUntil: 'domcontentloaded', timeout: 15_000 });
+        return { success: true, navigatedTo: navUrl };
+      }
+      return await sh.act(instruction, { page });
+    }
     if (action === 'observe') return await sh.observe(instruction, { page });
     if (action === 'extract') return await sh.extract(instruction, { page });
-    throw new Error(`Unknown step action: ${action}`);
+    throw new Error(`Unknown step action: "${action}"`);
   })();
 
   try {

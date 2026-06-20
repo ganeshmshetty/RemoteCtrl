@@ -331,6 +331,7 @@ function registerIpcHandlers() {
       signalingRole: signalingClient?.getRole() ?? null,
       hasOpenAIKey: hasApiKey('openai'),
       hasAnthropicKey: hasApiKey('anthropic'),
+      hasGeminiKey: hasApiKey('gemini'),
       preferredProvider: provider,
       platform: process.platform,
       electronVersion: process.versions.electron ?? 'unknown',

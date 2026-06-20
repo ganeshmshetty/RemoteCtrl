@@ -23,7 +23,7 @@ export const LocalWorkflowSchema = z.object({
 
 // ─── Settings Schemas ─────────────────────────────────────────────────────────
 
-export const ApiProviderSchema = z.enum(['openai', 'anthropic']);
+export const ApiProviderSchema = z.enum(['openai', 'anthropic', 'gemini']);
 
 export const SetApiKeySchema = z.object({
   provider: ApiProviderSchema,
