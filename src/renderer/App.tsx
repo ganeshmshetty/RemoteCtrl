@@ -8,12 +8,13 @@ import { ControllerSession } from './screens/ControllerSession';
 import { Settings } from './screens/Settings';
 import { WorkflowLibrary } from './screens/WorkflowLibrary';
 import { WorkflowEditor } from './screens/WorkflowEditor';
-import { Diagnostics } from './screens/Diagnostics';
+import { useSettingsStore } from './stores/useWorkflowStore';
 
 export default function App() {
   const { setHostState, setControllerState, setPendingControllerId, setPin, setError } =
     useConnectionStore();
   const { handleAgentStatus, handleAgentLog } = useAgentStore();
+  const isSettingsOpen = useSettingsStore((s) => s.isSettingsOpen);
 
   // Wire Main -> Renderer push events
   useEffect(() => {
@@ -33,16 +34,17 @@ export default function App() {
   }, []);
 
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/host" element={<HostSession />} />
-      <Route path="/controller" element={<ControllerSession />} />
-      <Route path="/settings" element={<Settings />} />
-      <Route path="/workflows" element={<WorkflowLibrary />} />
-      <Route path="/workflows/new" element={<WorkflowEditor />} />
-      <Route path="/workflows/:id" element={<WorkflowEditor />} />
-      <Route path="/diagnostics" element={<Diagnostics />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/host" element={<HostSession />} />
+        <Route path="/controller" element={<ControllerSession />} />
+        <Route path="/workflows" element={<WorkflowLibrary />} />
+        <Route path="/workflows/new" element={<WorkflowEditor />} />
+        <Route path="/workflows/:id" element={<WorkflowEditor />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      {isSettingsOpen && <Settings />}
+    </>
   );
 }

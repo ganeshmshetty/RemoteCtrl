@@ -1,11 +1,13 @@
 import { useNavigate } from 'react-router-dom';
-import { Monitor, Wifi, Settings, BookOpen, Activity } from 'lucide-react';
+import { Monitor, Wifi, Settings, BookOpen } from 'lucide-react';
 import { useConnectionStore } from '../stores/useConnectionStore';
+import { useSettingsStore } from '../stores/useWorkflowStore';
 import { useState } from 'react';
 
 export function Home() {
   const navigate = useNavigate();
   const { setRole } = useConnectionStore();
+  const setSettingsOpen = useSettingsStore((s) => s.setSettingsOpen);
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState('');
 
@@ -42,15 +44,8 @@ export function Home() {
         </button>
         <button
           className="icon-btn"
-          title="Diagnostics"
-          onClick={() => navigate('/diagnostics')}
-        >
-          <Activity size={16} />
-        </button>
-        <button
-          className="icon-btn"
           title="Settings"
-          onClick={() => navigate('/settings')}
+          onClick={() => setSettingsOpen(true)}
         >
           <Settings size={16} />
         </button>

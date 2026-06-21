@@ -69,6 +69,7 @@ interface SettingsState {
   hasGeminiKey: boolean;
   headlessMode: boolean;
   isLoading: boolean;
+  isSettingsOpen: boolean;
 
   // Actions
   loadSettings: () => Promise<void>;
@@ -76,6 +77,7 @@ interface SettingsState {
   setPreferredProvider: (provider: ApiProvider) => Promise<void>;
   setApiKey: (provider: ApiProvider, value: string) => Promise<void>;
   setHeadlessMode: (headless: boolean) => Promise<void>;
+  setSettingsOpen: (isOpen: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
@@ -86,6 +88,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   hasGeminiKey: false,
   headlessMode: true,
   isLoading: false,
+  isSettingsOpen: false,
 
   loadSettings: async () => {
     set({ isLoading: true });
@@ -123,5 +126,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setHeadlessMode: async (headless) => {
     await window.RemoteCtrlAPI.settings.setHeadlessMode(headless);
     set({ headlessMode: headless });
+  },
+
+  setSettingsOpen: (isOpen) => {
+    set({ isSettingsOpen: isOpen });
   },
 }));

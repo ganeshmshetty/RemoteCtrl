@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Key, Server, Cpu, RefreshCw, Eye, EyeOff } from 'lucide-react';
+
+import { X, Key, Server, Cpu, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { useSettingsStore } from '../stores/useWorkflowStore';
 import type { ApiProvider, BrowserMode } from '../../shared/types';
 
 export function Settings() {
-  const navigate = useNavigate();
   const {
     preferredProvider,
     hasOpenAIKey,
@@ -17,6 +16,7 @@ export function Settings() {
     setApiKey,
     headlessMode,
     setHeadlessMode,
+    setSettingsOpen,
   } = useSettingsStore();
 
   const [openAIInput, setOpenAIInput] = useState('');
@@ -71,18 +71,17 @@ export function Settings() {
   }
 
   return (
-    <div className="settings-root">
-      <div className="drag-region settings-titlebar" />
+    <div className="settings-overlay" onClick={() => setSettingsOpen(false)}>
+      <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="settings-header">
+          <h1 className="settings-title">Settings</h1>
+          {savedMsg && <span className="settings-saved-toast animate-fade-in">{savedMsg}</span>}
+          <button className="icon-btn" onClick={() => setSettingsOpen(false)}>
+            <X size={16} />
+          </button>
+        </div>
 
-      <div className="settings-header no-drag">
-        <button className="icon-btn" onClick={() => navigate(-1)}>
-          <ArrowLeft size={16} />
-        </button>
-        <h1 className="settings-title">Settings</h1>
-        {savedMsg && <span className="settings-saved-toast animate-fade-in">{savedMsg}</span>}
-      </div>
-
-      <div className="settings-body">
+        <div className="settings-body">
 
         {/* Browser Mode */}
         <Section icon={<Cpu size={15} />} title="Browser Connection">
@@ -265,19 +264,39 @@ export function Settings() {
       </div>
 
       <style>{`
-        .settings-root {
-          height: 100%;
+        .settings-overlay {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+        }
+        .settings-modal {
+          background: var(--bg-base);
+          width: 500px;
+          max-height: 85vh;
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--border);
+          box-shadow: 0 10px 30px rgba(0,0,0,0.5);
           display: flex;
           flex-direction: column;
-          background: var(--bg-base);
+          overflow: hidden;
+          animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .settings-titlebar { height: 28px; }
+        @keyframes modalIn {
+          from { opacity: 0; transform: scale(0.95) translateY(10px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
         .settings-header {
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 12px 20px;
+          padding: 16px 20px;
           border-bottom: 1px solid var(--border);
+          background: var(--bg-surface);
         }
         .settings-title {
           font-size: 15px;
@@ -412,6 +431,7 @@ export function Settings() {
         .btn-danger-outline { background: transparent; color: var(--danger); border: 1px solid rgba(239,68,68,0.4); }
         .btn-danger-outline:hover { background: rgba(239,68,68,0.1); }
       `}</style>
+      </div>
     </div>
   );
 }
