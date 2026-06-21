@@ -21,6 +21,11 @@
   "build": {
     "appId": "com.RemoteCtrl.app",
     "productName": "RemoteCtrl",
+    "publish": {
+      "provider": "github",
+      "owner": "ganeshmshetty",
+      "repo": "RemCtrl"
+    },
     "directories": {
       "output": "release"
     },
@@ -45,6 +50,7 @@
     "@ai-sdk/openai": "^3.0.71",
     "@browserbasehq/stagehand": "^3.4.0",
     "ai": "^6.0.208",
+    "electron-updater": "^6.8.3",
     "express": "^5.2.1",
     "lucide-react": "^1.16.0",
     "playwright": "^1.60.0",
