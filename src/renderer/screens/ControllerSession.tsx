@@ -511,7 +511,8 @@ export function ControllerSession() {
               disabled={!isConnected || agentStatus === 'running' || workflowRunState === 'running'}
               rows={3}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault(); // Prevent default new line
                   handleSendPrompt(e as any);
                 }
               }}
