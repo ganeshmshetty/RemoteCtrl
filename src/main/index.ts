@@ -3,7 +3,9 @@ import {
   BrowserWindow,
   shell,
   nativeTheme,
+  dialog,
 } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import path from 'path';
 import { setMainWindow } from './ipc-handlers.js';
 import { closeBrowser } from './browser-manager.js';
@@ -73,6 +75,50 @@ app.whenReady().then(() => {
       setMainWindow(newWin);
     }
   });
+
+  // ── Auto Updater configuration ──
+  autoUpdater.autoDownload = false; // Prompt user before downloading
+
+  autoUpdater.on('update-available', async (info) => {
+    const { response } = await dialog.showMessageBox({
+      type: 'info',
+      title: 'Update Available',
+      message: `Version ${info.version} of RemoteCtrl is available.`,
+      detail: 'Would you like to download it now?',
+      buttons: ['Download', 'Skip'],
+      defaultId: 0,
+      cancelId: 1
+    });
+
+    if (response === 0) {
+      autoUpdater.downloadUpdate();
+    }
+  });
+
+  autoUpdater.on('update-downloaded', async () => {
+    const { response } = await dialog.showMessageBox({
+      type: 'info',
+      title: 'Update Ready',
+      message: 'The update has been successfully downloaded.',
+      detail: 'Would you like to restart the application to apply the updates now?',
+      buttons: ['Restart', 'Later'],
+      defaultId: 0,
+      cancelId: 1
+    });
+
+    if (response === 0) {
+      autoUpdater.quitAndInstall();
+    }
+  });
+
+  autoUpdater.on('error', (err) => {
+    console.error('AutoUpdater Error:', err);
+  });
+
+  // Check for updates (only in production)
+  if (!isDev) {
+    autoUpdater.checkForUpdates();
+  }
 });
 
 app.on('window-all-closed', () => {
