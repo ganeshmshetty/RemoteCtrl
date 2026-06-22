@@ -56,6 +56,7 @@ contextBridge.exposeInMainWorld('RemoteCtrlAPI', {
   // ── App / Diagnostics ─────────────────────────────────────────────────────
   app: {
     getDiagnostics: () => ipcRenderer.invoke('app:getDiagnostics'),
+    openSettings: () => ipcRenderer.invoke('app:openSettings'),
   },
 
   // ── Settings ──────────────────────────────────────────────────────────────

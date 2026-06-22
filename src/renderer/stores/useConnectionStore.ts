@@ -10,6 +10,7 @@ interface ConnectionState {
   controllerState: ControllerSessionState;
   pendingControllerId: string | null; // for host approval modal
   error: string | null;
+  sendData: ((msg: any, reliable?: boolean) => void) | null;
 
   // Actions
   setRole: (role: SessionRole) => void;
@@ -18,6 +19,7 @@ interface ConnectionState {
   setControllerState: (state: ControllerSessionState) => void;
   setPendingControllerId: (id: string | null) => void;
   setError: (error: string | null) => void;
+  setSendData: (fn: ((msg: any, reliable?: boolean) => void) | null) => void;
   reset: () => void;
 }
 
@@ -28,6 +30,7 @@ const initialState = {
   controllerState: 'IDLE' as ControllerSessionState,
   pendingControllerId: null,
   error: null,
+  sendData: null,
 };
 
 export const useConnectionStore = create<ConnectionState>((set) => ({
@@ -39,5 +42,6 @@ export const useConnectionStore = create<ConnectionState>((set) => ({
   setControllerState: (controllerState) => set({ controllerState }),
   setPendingControllerId: (pendingControllerId) => set({ pendingControllerId }),
   setError: (error) => set({ error }),
+  setSendData: (sendData) => set({ sendData }),
   reset: () => set(initialState),
 }));

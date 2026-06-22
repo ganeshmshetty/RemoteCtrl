@@ -69,7 +69,6 @@ interface SettingsState {
   hasGeminiKey: boolean;
   headlessMode: boolean;
   isLoading: boolean;
-  isSettingsOpen: boolean;
 
   // Actions
   loadSettings: () => Promise<void>;
@@ -77,6 +76,7 @@ interface SettingsState {
   setPreferredProvider: (provider: ApiProvider) => Promise<void>;
   setApiKey: (provider: ApiProvider, value: string) => Promise<void>;
   setHeadlessMode: (headless: boolean) => Promise<void>;
+  isSettingsOpen: boolean;
   setSettingsOpen: (isOpen: boolean) => void;
 }
 

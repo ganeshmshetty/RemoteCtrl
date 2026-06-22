@@ -28,12 +28,13 @@ import {
   setHeadlessMode,
 } from './storage.js';
 import { SignalingClient } from './signaling-client.js';
-import { launchBrowser, closeBrowser, getCaptureMetadata, injectMouse, injectKeyboard, isBrowserRunning, resetProfile } from './browser-manager.js';
+import { launchBrowser, closeBrowser, getCaptureMetadata, injectMouse, injectKeyboard, resetProfile } from './browser-manager.js';
 import { runAgentCommand, cancelAgentCommand, isAgentRunning, setAgentPaused } from './agent-executor.js';
 import { runWorkflow, cancelWorkflow, isWorkflowRunning, setWorkflowPaused } from './workflow-executor.js';
 import { submitCheckpointResponse } from './human-checkpoint.js';
 import { setScreencastWindow } from './screencast.js';
 import { setBrowserNotifyWindow, getTabs, switchTab, goBack, goForward, reload, navigate, closeTab, newTab } from './browser-manager.js';
+import { openSettingsWindow } from './index.js';
 import type { AgentWorkflowBatchPayload } from '../shared/types.js';
 
 let signalingClient: SignalingClient | null = null;
@@ -351,25 +352,17 @@ function registerIpcHandlers() {
     return { ok: true };
   });
 
-  // ── Diagnostics ────────────────────────────────────────────────────
-
+  // ── Diagnostics / App ─────────────────────────────────────────────────────
   ipcMain.handle('app:getDiagnostics', async () => {
-    const provider = (() => { try { return getPreferredProvider(); } catch { return 'unknown'; } })();
     return {
-      browserRunning: isBrowserRunning(),
-      agentRunning: isAgentRunning(),
-      workflowRunning: isWorkflowRunning(),
-      signalingConnected: signalingClient?.isConnected() ?? false,
-      signalingRole: signalingClient?.getRole() ?? null,
-      hasOpenAIKey: hasApiKey('openai'),
-      hasAnthropicKey: hasApiKey('anthropic'),
-      hasGeminiKey: hasApiKey('gemini'),
-      preferredProvider: provider,
-      platform: process.platform,
       electronVersion: process.versions.electron ?? 'unknown',
       nodeVersion: process.versions.node,
       appVersion: app.getVersion(),
     };
+  });
+
+  ipcMain.handle('app:openSettings', async () => {
+    openSettingsWindow();
   });
 
   // ── WebRTC Signal Relay ───────────────────────────────────────────────────

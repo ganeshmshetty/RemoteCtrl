@@ -65,6 +65,45 @@ function createWindow() {
   return mainWindow;
 }
 
+let settingsWindow: BrowserWindow | null = null;
+
+export function openSettingsWindow() {
+  if (settingsWindow) {
+    settingsWindow.focus();
+    return;
+  }
+
+  settingsWindow = new BrowserWindow({
+    width: 600,
+    height: 700,
+    resizable: false,
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    backgroundColor: '#0a0a0f',
+    show: false,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: false,
+      webSecurity: true,
+      preload: path.join(__dirname, 'preload.cjs'),
+    },
+  });
+
+  if (isDev) {
+    settingsWindow.loadURL('http://localhost:5173/#/settings');
+  } else {
+    settingsWindow.loadFile(path.join(__dirname, '../renderer/index.html'), { hash: 'settings' });
+  }
+
+  settingsWindow.once('ready-to-show', () => {
+    settingsWindow?.show();
+  });
+
+  settingsWindow.on('closed', () => {
+    settingsWindow = null;
+  });
+}
+
 app.whenReady().then(() => {
   const win = createWindow();
   setMainWindow(win);

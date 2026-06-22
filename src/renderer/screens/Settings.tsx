@@ -16,7 +16,6 @@ export function Settings() {
     setApiKey,
     headlessMode,
     setHeadlessMode,
-    setSettingsOpen,
   } = useSettingsStore();
 
   const [openAIInput, setOpenAIInput] = useState('');
@@ -71,17 +70,18 @@ export function Settings() {
   }
 
   return (
-    <div className="settings-overlay" onClick={() => setSettingsOpen(false)}>
-      <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="settings-header">
-          <h1 className="settings-title">Settings</h1>
-          {savedMsg && <span className="settings-saved-toast animate-fade-in">{savedMsg}</span>}
-          <button className="icon-btn" onClick={() => setSettingsOpen(false)}>
-            <X size={16} />
-          </button>
-        </div>
+    <div className="settings-root">
+      <div className="drag-region settings-titlebar" />
 
-        <div className="settings-body">
+      <div className="settings-header no-drag">
+        <h1 className="settings-title">Settings</h1>
+        {savedMsg && <span className="settings-saved-toast animate-fade-in">{savedMsg}</span>}
+        <button className="icon-btn" onClick={() => window.close()}>
+          <X size={16} />
+        </button>
+      </div>
+
+      <div className="settings-body">
 
         {/* Browser Mode */}
         <Section icon={<Cpu size={15} />} title="Browser Connection">
@@ -261,177 +261,157 @@ export function Settings() {
           </button>
         </Section>
 
-      </div>
+        </div>{/* end settings-body */}
 
-      <style>{`
-        .settings-overlay {
-          position: fixed;
-          top: 0; left: 0; right: 0; bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          backdrop-filter: blur(4px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 9999;
-        }
-        .settings-modal {
-          background: var(--bg-base);
-          width: 500px;
-          max-height: 85vh;
-          border-radius: var(--radius-lg);
-          border: 1px solid var(--border);
-          box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-          animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        @keyframes modalIn {
-          from { opacity: 0; transform: scale(0.95) translateY(10px); }
-          to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        .settings-header {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 16px 20px;
-          border-bottom: 1px solid var(--border);
-          background: var(--bg-surface);
-        }
-        .settings-title {
-          font-size: 15px;
-          font-weight: 600;
-          color: var(--text-primary);
-          flex: 1;
-        }
-        .settings-saved-toast {
-          font-size: 12px;
-          color: var(--success);
-          font-weight: 500;
-        }
-        .settings-body {
-          flex: 1;
-          overflow-y: auto;
-          padding: 24px 20px;
-          display: flex;
-          flex-direction: column;
-          gap: 24px;
-          max-width: 640px;
-        }
-        .settings-section {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-        .settings-section-header {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 12px;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          color: var(--text-muted);
-          border-bottom: 1px solid var(--border);
-          padding-bottom: 10px;
-        }
-        .settings-field {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .settings-field-label-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        .settings-field-label {
-          font-size: 13px;
-          font-weight: 500;
-          color: var(--text-primary);
-        }
-        .settings-field-status {
-          font-size: 11px;
-          padding: 2px 8px;
-          border-radius: 99px;
-          font-weight: 600;
-        }
-        .status-ok  { background: rgba(34,197,94,0.1); color: var(--success); }
-        .status-off { background: var(--bg-overlay); color: var(--text-muted); }
-        .settings-hint {
-          font-size: 12px;
-          color: var(--text-muted);
-          line-height: 1.6;
-        }
-        .settings-input-row {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-        }
-        .settings-input-wrap {
-          position: relative;
-          flex: 1;
-        }
-        .settings-input {
-          width: 100%;
-          height: 36px;
-          padding: 0 36px 0 12px;
-          background: var(--bg-surface);
-          border: 1px solid var(--border);
-          border-radius: var(--radius-sm);
-          color: var(--text-primary);
-          font-size: 13px;
-          font-family: var(--font-mono);
-          outline: none;
-          transition: border-color var(--transition);
-        }
-        .settings-input:focus { border-color: var(--accent); }
-        .settings-eye-btn {
-          position: absolute;
-          right: 8px;
-          top: 50%;
-          transform: translateY(-50%);
-          background: none;
-          border: none;
-          color: var(--text-muted);
-          cursor: pointer;
-          padding: 2px;
-        }
-        .settings-eye-btn:hover { color: var(--text-secondary); }
-        .settings-radio-group {
-          display: flex;
-          gap: 12px;
-        }
-        .settings-radio {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          cursor: pointer;
-        }
-        .settings-radio-label { font-size: 13px; color: var(--text-secondary); }
-        .settings-reset-btn { margin-top: 4px; }
-        .icon-btn {
-          display: flex; align-items: center; justify-content: center;
-          width: 32px; height: 32px; border-radius: var(--radius-sm);
-          border: none; background: transparent; color: var(--text-muted);
-          cursor: pointer; transition: color var(--transition), background var(--transition);
-        }
-        .icon-btn:hover { color: var(--text-primary); background: var(--bg-elevated); }
-        .btn {
-          display: inline-flex; align-items: center; justify-content: center;
-          gap: 6px; height: 36px; padding: 0 16px; border-radius: var(--radius-sm);
-          font-size: 13px; font-weight: 600; cursor: pointer; border: none;
-          transition: background var(--transition), opacity var(--transition), transform var(--transition);
-          white-space: nowrap;
-        }
-        .btn:active { transform: scale(0.97); }
-        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .btn-primary { background: var(--accent); color: white; }
-        .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
-        .btn-danger-outline { background: transparent; color: var(--danger); border: 1px solid rgba(239,68,68,0.4); }
-        .btn-danger-outline:hover { background: rgba(239,68,68,0.1); }
-      `}</style>
-      </div>
+        <style>{`
+          .settings-root {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-base);
+          }
+          .settings-titlebar { height: 28px; }
+            .settings-header {
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              padding: 16px 20px;
+              border-bottom: 1px solid var(--border);
+              background: var(--bg-surface);
+              flex-shrink: 0;
+            }
+            .settings-title {
+              font-size: 15px;
+              font-weight: 600;
+              color: var(--text-primary);
+              flex: 1;
+            }
+            .settings-saved-toast {
+              font-size: 12px;
+              color: var(--success);
+              font-weight: 500;
+            }
+            .settings-body {
+              flex: 1;
+              overflow-y: auto;
+              padding: 24px 20px;
+              display: flex;
+              flex-direction: column;
+              gap: 24px;
+            }
+            .settings-section {
+              display: flex;
+              flex-direction: column;
+              gap: 16px;
+            }
+            .settings-section-header {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              font-size: 12px;
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 0.06em;
+              color: var(--text-muted);
+              border-bottom: 1px solid var(--border);
+              padding-bottom: 10px;
+            }
+            .settings-field {
+              display: flex;
+              flex-direction: column;
+              gap: 8px;
+            }
+            .settings-field-label-row {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+            }
+            .settings-field-label {
+              font-size: 13px;
+              font-weight: 500;
+              color: var(--text-primary);
+            }
+            .settings-field-status {
+              font-size: 11px;
+              padding: 2px 8px;
+              border-radius: 99px;
+              font-weight: 600;
+            }
+            .status-ok  { background: rgba(34,197,94,0.1); color: var(--success); }
+            .status-off { background: var(--bg-overlay); color: var(--text-muted); }
+            .settings-hint {
+              font-size: 12px;
+              color: var(--text-muted);
+              line-height: 1.6;
+            }
+            .settings-input-row {
+              display: flex;
+              gap: 8px;
+              align-items: center;
+            }
+            .settings-input-wrap {
+              position: relative;
+              flex: 1;
+            }
+            .settings-input {
+              width: 100%;
+              height: 36px;
+              padding: 0 36px 0 12px;
+              background: var(--bg-surface);
+              border: 1px solid var(--border);
+              border-radius: var(--radius-sm);
+              color: var(--text-primary);
+              font-size: 13px;
+              font-family: var(--font-mono);
+              outline: none;
+              transition: border-color var(--transition);
+            }
+            .settings-input:focus { border-color: var(--accent); }
+            .settings-eye-btn {
+              position: absolute;
+              right: 8px;
+              top: 50%;
+              transform: translateY(-50%);
+              background: none;
+              border: none;
+              color: var(--text-muted);
+              cursor: pointer;
+              padding: 2px;
+            }
+            .settings-eye-btn:hover { color: var(--text-secondary); }
+            .settings-radio-group {
+              display: flex;
+              gap: 12px;
+            }
+            .settings-radio {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              cursor: pointer;
+            }
+            .settings-radio-label { font-size: 13px; color: var(--text-secondary); }
+            .settings-reset-btn { margin-top: 4px; }
+            .icon-btn {
+              display: flex; align-items: center; justify-content: center;
+              width: 32px; height: 32px; border-radius: var(--radius-sm);
+              border: none; background: transparent; color: var(--text-muted);
+              cursor: pointer; transition: color var(--transition), background var(--transition);
+            }
+            .icon-btn:hover { color: var(--text-primary); background: var(--bg-elevated); }
+            .btn {
+              display: inline-flex; align-items: center; justify-content: center;
+              gap: 6px; height: 36px; padding: 0 16px; border-radius: var(--radius-sm);
+              font-size: 13px; font-weight: 600; cursor: pointer; border: none;
+              transition: background var(--transition), opacity var(--transition), transform var(--transition);
+              white-space: nowrap;
+            }
+            .btn:active { transform: scale(0.97); }
+            .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+            .btn-primary { background: var(--accent); color: white; }
+            .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+            .btn-danger-outline { background: transparent; color: var(--danger); border: 1px solid rgba(239,68,68,0.4); }
+            .btn-danger-outline:hover { background: rgba(239,68,68,0.1); }
+          `}</style>
     </div>
   );
 }

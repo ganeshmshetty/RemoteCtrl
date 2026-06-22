@@ -1,21 +1,22 @@
-import { useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useConnectionStore } from './stores/useConnectionStore';
 import { useAgentStore } from './stores/useAgentStore';
-import { Home } from './screens/Home';
-import { HostSession } from './screens/HostSession';
+import { TopNav } from './screens/TopNav';
 import { ControllerSession } from './screens/ControllerSession';
 import { Settings } from './screens/Settings';
-import { WorkflowLibrary } from './screens/WorkflowLibrary';
-import { WorkflowEditor } from './screens/WorkflowEditor';
-import { useSettingsStore } from './stores/useWorkflowStore';
 
 export default function App() {
   const { setHostState, setControllerState, setPendingControllerId, setPin, setError } =
     useConnectionStore();
-  const { handleAgentStatus, handleAgentLog } = useAgentStore();
-  const isSettingsOpen = useSettingsStore((s) => s.isSettingsOpen);
+  const { handleAgentStatus, handleAgentLog, handleWorkflowRunStatus, handleWorkflowStepStatus, handleAgentCheckpoint } = useAgentStore();
+  const [isSettingsRoute, setIsSettingsRoute] = useState(false);
 
+  useEffect(() => {
+    setIsSettingsRoute(window.location.hash.includes('settings'));
+    const handleHashChange = () => setIsSettingsRoute(window.location.hash.includes('settings'));
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
   // Wire Main -> Renderer push events
   useEffect(() => {
     if (!window.RemoteCtrlAPI) return; // Running in browser dev mode without Electron
@@ -27,24 +28,25 @@ export default function App() {
       window.RemoteCtrlAPI.on.pin((pin) => setPin(pin)),
       window.RemoteCtrlAPI.on.agentStatus((payload) => handleAgentStatus(payload)),
       window.RemoteCtrlAPI.on.agentLog((payload) => handleAgentLog(payload)),
+      window.RemoteCtrlAPI.on.workflowRunStatus((status) => handleWorkflowRunStatus(status)),
+      window.RemoteCtrlAPI.on.workflowStepStatus((status) => handleWorkflowStepStatus(status)),
+      window.RemoteCtrlAPI.on.agentCheckpoint((payload) => handleAgentCheckpoint(payload)),
       window.RemoteCtrlAPI.on.error((msg) => setError(msg)),
     ];
 
     return () => unsubs.forEach((u) => u());
   }, []);
 
+  if (isSettingsRoute) {
+    return <Settings />;
+  }
+
   return (
-    <>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/host" element={<HostSession />} />
-        <Route path="/controller" element={<ControllerSession />} />
-        <Route path="/workflows" element={<WorkflowLibrary />} />
-        <Route path="/workflows/new" element={<WorkflowEditor />} />
-        <Route path="/workflows/:id" element={<WorkflowEditor />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      {isSettingsOpen && <Settings />}
-    </>
+    <div className="app-shell">
+      <TopNav />
+      <div className="main-content">
+        <ControllerSession />
+      </div>
+    </div>
   );
 }

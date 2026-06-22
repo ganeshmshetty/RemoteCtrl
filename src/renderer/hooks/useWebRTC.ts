@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import type { DataChannelMessage } from '../../shared/types';
 
 const ICE_SERVERS: RTCIceServer[] = []; // Empty array forces local host candidates only, bypassing DNS errors in local dev
@@ -45,6 +45,7 @@ function makeIceQueue(pc: RTCPeerConnection) {
 export function useHostWebRTC(isSessionActive: boolean) {
   const [status, setStatus] = useState<WebRTCStatus>('idle');
   const [error, setError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     if (!isSessionActive) return;
@@ -112,6 +113,11 @@ export function useHostWebRTC(isSessionActive: boolean) {
 
         // 4. Create peer connection and add tracks
         pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+        
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+
         stream.getTracks().forEach((track) => pc!.addTrack(track, stream!));
 
         const iceQueue = makeIceQueue(pc);
@@ -353,7 +359,7 @@ export function useHostWebRTC(isSessionActive: boolean) {
     };
   }, [isSessionActive]);
 
-  return { status, error };
+  return { status, error, videoRef };
 }
 
 // ─── Controller-side WebRTC hook ───────────────────────────────────────────────
@@ -464,14 +470,14 @@ export function useControllerWebRTC(_isSessionActive: boolean) {
     };
   }, []); // <-- mount once, always listening
 
-  const sendData = (msg: DataChannelMessage, reliable = true) => {
+  const sendData = useCallback((msg: DataChannelMessage, reliable = true) => {
     const channel = reliable ? reliableChannelRef.current : inputChannelRef.current;
     if (channel && channel.readyState === 'open') {
       channel.send(JSON.stringify(msg));
     } else {
       console.warn('[ctrl-webrtc] Cannot send data, channel not open');
     }
-  };
+  }, []);
 
   const onMessage = (cb: (msg: DataChannelMessage) => void) => {
     onMessageRef.current = cb;

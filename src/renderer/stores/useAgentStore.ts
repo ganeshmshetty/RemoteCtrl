@@ -92,11 +92,12 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     set(updates);
     
     if (payload.state === 'completed') {
+      const formattedResult = formatAgentResult(payload.result);
       get().appendMessage({
         id: `status-${payload.commandId}-${Date.now()}`,
         sender: 'agent',
         type: 'status',
-        text: `I successfully completed the task! ${payload.result ? `\nResult: ${JSON.stringify(payload.result, null, 2)}` : ''}`,
+        text: formattedResult,
         timestamp: Date.now(),
       });
     } else if (payload.state === 'failed') {
@@ -134,16 +135,6 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       workflowRunState: stateMap[status.state] ?? 'idle',
       workflowRunId: status.workflowRunId,
       currentStepIndex: status.currentStepIndex ?? null,
-    });
-    // Also surface to chat
-    get().appendMessage({
-      id: `wf-run-${status.workflowRunId}-${status.state}-${Date.now()}`,
-      sender: 'agent',
-      type: 'workflow',
-      text: status.error
-        ? `Workflow ${status.state}: ${status.error}`
-        : `Workflow ${status.state}${status.currentStepIndex != null ? ` (step ${status.currentStepIndex + 1})` : ''}`,
-      timestamp: Date.now(),
     });
   },
 
@@ -183,3 +174,34 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       currentStepIndex: null,
     }),
 }));
+
+function formatAgentResult(result: any): string {
+  if (!result) return 'I successfully completed the task!';
+  
+  if (typeof result === 'string') return result;
+  
+  if (typeof result === 'object') {
+    if (result.success !== undefined && result.message) {
+      return result.message;
+    }
+    
+    if (Array.isArray(result)) {
+      if (result.length === 0) return 'I found no results.';
+      const items = result.map(item => {
+        if (typeof item === 'object') {
+          return Object.entries(item)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(', ');
+        }
+        return String(item);
+      });
+      return 'Here is what I found:\n\n' + items.map(i => `• ${i}`).join('\n');
+    }
+
+    return 'Here is what I found:\n\n' + Object.entries(result)
+      .map(([k, v]) => `• ${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
+      .join('\n');
+  }
+  
+  return String(result);
+}

@@ -1,0 +1,347 @@
+
+> RemoteCtrl@0.0.1 lint
+> eslint .
+
+
+/Users/ganesh/dev/remcon/research/nanobrowser/chrome-extension/src/background/agent/actions/builder.ts
+  195:5  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unused-vars')
+
+/Users/ganesh/dev/remcon/research/nanobrowser/chrome-extension/src/background/agent/agents/base.ts
+  173:9  error  There is no `cause` attached to the symptom error being thrown  preserve-caught-error
+
+/Users/ganesh/dev/remcon/research/nanobrowser/chrome-extension/src/background/agent/agents/navigator.ts
+  128:9   error  There is no `cause` attached to the symptom error being thrown        preserve-caught-error
+  336:9   error  The value assigned to 'actions' is not used in subsequent statements  no-useless-assignment
+  348:16  error  'parseError' is defined but never used                                @typescript-eslint/no-unused-vars
+  354:18  error  'error' is defined but never used                                     @typescript-eslint/no-unused-vars
+  356:11  error  There is no `cause` attached to the symptom error being thrown        preserve-caught-error
+  447:11  error  There is no `cause` attached to the symptom error being thrown        preserve-caught-error
+  477:7   error  There is no `cause` attached to the symptom error being thrown        preserve-caught-error
+  617:13  error  There is no `cause` attached to the symptom error being thrown        preserve-caught-error
+
+/Users/ganesh/dev/remcon/research/nanobrowser/chrome-extension/src/background/agent/helper.ts
+  16:21  error  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  21:38  error  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  21:53  error  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  21:67  error  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  45:55  error  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  46:59  error  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  47:54  error  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  55:21  error  Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  75:10  error  'isAnthropicOpusModel' is defined but never used  @typescript-eslint/no-unused-vars
+  85:10  error  'isAnthropic4_5Model' is defined but never used   @typescript-eslint/no-unused-vars
+
+/Users/ganesh/dev/remcon/research/nanobrowser/chrome-extension/src/background/agent/messages/utils.ts
+  106:20  error  'e' is defined but never used  @typescript-eslint/no-unused-vars
+  132:12  error  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/ganesh/dev/remcon/research/nanobrowser/chrome-extension/src/background/agent/prompts/base.ts
+  33:9  error  The value assigned to 'formattedElementsText' is not used in subsequent statements  no-useless-assignment
+
+/Users/ganesh/dev/remcon/research/nanobrowser/chrome-extension/src/background/browser/dom/history/view.ts
+  49:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/ganesh/dev/remcon/research/nanobrowser/chrome-extension/src/background/browser/dom/service.ts
+  346:9   error  The value assigned to 'heightMatch' is not used in subsequent statements  no-useless-assignment
+  347:9   error  The value assigned to 'widthMatch' is not used in subsequent statements   no-useless-assignment
+  609:16  error  'injectionErr' is defined but never used                                  @typescript-eslint/no-unused-vars
+
+/Users/ganesh/dev/remcon/research/nanobrowser/chrome-extension/src/background/browser/dom/views.ts
+  423:22  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  549:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/ganesh/dev/remcon/research/nanobrowser/chrome-extension/src/background/browser/page.ts
+   390:11  error    There is no `cause` attached to the symptom error being thrown                            preserve-caught-error
+   748:7   error    There is no `cause` attached to the symptom error being thrown                            preserve-caught-error
+   909:7   error    There is no `cause` attached to the symptom error being thrown                            preserve-caught-error
+   947:7   error    There is no `cause` attached to the symptom error being thrown                            preserve-caught-error
+  1023:7   error    There is no `cause` attached to the symptom error being thrown                            preserve-caught-error
+  1189:7   error    There is no `cause` attached to the symptom error being thrown                            preserve-caught-error
+  1237:5   warning  Unused eslint-disable directive (no problems were reported from 'no-constant-condition')
+  1325:11  error    There is no `cause` attached to the symptom error being thrown                            preserve-caught-error
+  1331:7   error    There is no `cause` attached to the symptom error being thrown                            preserve-caught-error
+  1533:7   warning  Unused eslint-disable directive (no problems were reported from 'no-constant-condition')
+
+/Users/ganesh/dev/remcon/research/nanobrowser/chrome-extension/src/background/browser/util.ts
+  89:12  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/ganesh/dev/remcon/research/nanobrowser/chrome-extension/src/background/services/speechToText.ts
+  73:7  error  There is no `cause` attached to the symptom error being thrown  preserve-caught-error
+
+/Users/ganesh/dev/remcon/research/nanobrowser/packages/hmr/lib/injections/refresh.ts
+  27:5  error  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+
+/Users/ganesh/dev/remcon/research/nanobrowser/packages/hmr/lib/interpreter/index.ts
+  4:3  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-empty-function')
+
+/Users/ganesh/dev/remcon/research/nanobrowser/pages/options/src/Options.tsx
+  22:7  error  Fast refresh only works when a file only exports components. Move your component(s) to a separate file. If all exports are HOCs, add them to the `extraHOCs` option                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    react-refresh/only-export-components
+  29:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/ganesh/dev/remcon/research/nanobrowser/pages/options/src/Options.tsx:29:5
+  27 |   useEffect(() => {
+  28 |     const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+> 29 |     setIsDarkMode(darkModeMediaQuery.matches);
+     |     ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  30 |
+  31 |     const handleChange = (e: MediaQueryListEvent) => {
+  32 |       setIsDarkMode(e.matches);  react-hooks/set-state-in-effect
+
+/Users/ganesh/dev/remcon/research/nanobrowser/pages/options/src/components/FirewallSettings.tsx
+  25:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/ganesh/dev/remcon/research/nanobrowser/pages/options/src/components/FirewallSettings.tsx:25:5
+  23 |
+  24 |   useEffect(() => {
+> 25 |     loadFirewallSettings();
+     |     ^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  26 |   }, [loadFirewallSettings]);
+  27 |
+  28 |   const handleToggleFirewall = async () => {  react-hooks/set-state-in-effect
+
+/Users/ganesh/dev/remcon/research/nanobrowser/pages/options/src/components/ModelSettings.tsx
+  394:9   error  The value assigned to 'hasInput' is not used in subsequent statements                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     no-useless-assignment
+  469:65  error  Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/Users/ganesh/dev/remcon/research/nanobrowser/pages/options/src/components/ModelSettings.tsx:469:65
+  467 |       configToSave.name = providers[provider].name || getDefaultDisplayNameFromProviderId(provider);
+  468 |       configToSave.type = providers[provider].type;
+> 469 |       configToSave.createdAt = providers[provider].createdAt || Date.now();
+      |                                                                 ^^^^^^^^^^ Cannot call impure function
+  470 |       // baseUrl, azureDeploymentName, azureApiVersion should be correctly set by handlers
+  471 |
+  472 |       if (providers[provider].type === ProviderTypeEnum.AzureOpenAI) {  react-hooks/purity
+
+/Users/ganesh/dev/remcon/research/nanobrowser/pages/side-panel/src/components/BookmarkList.tsx
+  1:1  error  Definition for rule 'react/prop-types' was not found  react/prop-types
+
+/Users/ganesh/dev/remcon/research/nanobrowser/pages/side-panel/src/components/ChatHistoryList.tsx
+  1:1  error  Definition for rule 'react/prop-types' was not found  react/prop-types
+
+/Users/ganesh/dev/remcon/research/puppeteer-stream/extension/options.ts
+  106:12  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  106:19  error  Empty block statement              no-empty
+  112:12  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  112:19  error  Empty block statement              no-empty
+
+/Users/ganesh/dev/remcon/research/puppeteer-stream/src/PuppeteerStream.ts
+   30:24  error  Unexpected any. Specify a different type                                                                                 @typescript-eslint/no-explicit-any
+   48:41  error  The `Function` type accepts any function-like value.
+Prefer explicitly defining any function parameters and return type  @typescript-eslint/no-unsafe-function-type
+   48:66  error  Unexpected any. Specify a different type                                                                                 @typescript-eslint/no-explicit-any
+   52:2   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free      @typescript-eslint/ban-ts-comment
+   87:2   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free      @typescript-eslint/ban-ts-comment
+  101:2   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free      @typescript-eslint/ban-ts-comment
+  103:3   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free      @typescript-eslint/ban-ts-comment
+  116:17  error  Unexpected any. Specify a different type                                                                                 @typescript-eslint/no-explicit-any
+  174:11  error  'IPuppeteerStreamOpts' is defined but never used                                                                         @typescript-eslint/no-unused-vars
+  244:5   error  'queue' is never reassigned. Use 'const' instead                                                                         prefer-const
+  244:12  error  The `Function` type accepts any function-like value.
+Prefer explicitly defining any function parameters and return type  @typescript-eslint/no-unsafe-function-type
+  280:4   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free      @typescript-eslint/ban-ts-comment
+  305:5   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free      @typescript-eslint/ban-ts-comment
+  344:3   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free      @typescript-eslint/ban-ts-comment
+  356:3   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free      @typescript-eslint/ban-ts-comment
+
+/Users/ganesh/dev/remcon/src/main/advanced-task-executor.ts
+   17:10  error  'ComplexTaskExecutor' is defined but never used  @typescript-eslint/no-unused-vars
+   18:43  error  'ActionSubtask' is defined but never used        @typescript-eslint/no-unused-vars
+   20:60  error  'CheckpointOption' is defined but never used     @typescript-eslint/no-unused-vars
+   29:39  error  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+   53:20  error  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+   58:10  error  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+  208:84  error  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+  288:74  error  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+  342:15  error  Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+
+/Users/ganesh/dev/remcon/src/main/agent-executor.ts
+   26:3   error  'BrowserNotReadyError' is defined but never used                             @typescript-eslint/no-unused-vars
+   27:3   error  'CommandExecutionError' is defined but never used                            @typescript-eslint/no-unused-vars
+   29:3   error  'StagehandConnectionError' is defined but never used                         @typescript-eslint/no-unused-vars
+  128:7   error  The value assigned to 'localStagehand' is not used in subsequent statements  no-useless-assignment
+  139:25  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  188:5   error  The value assigned to 'localStagehand' is not used in subsequent statements  no-useless-assignment
+  221:12  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  281:12  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  282:19  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  321:21  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  347:12  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  403:5   error  The value assigned to 'lastStallCheck' is not used in subsequent statements  no-useless-assignment
+
+/Users/ganesh/dev/remcon/src/main/browser-manager.ts
+  120:50  error  Empty block statement                                           no-empty
+  183:7   error  There is no `cause` attached to the symptom error being thrown  preserve-caught-error
+
+/Users/ganesh/dev/remcon/src/main/checkpoint-manager.ts
+  12:47  error  'stat' is defined but never used          @typescript-eslint/no-unused-vars
+  35:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/ganesh/dev/remcon/src/main/complex-task-executor.ts
+   18:25  error  'createPageFingerprint' is defined but never used  @typescript-eslint/no-unused-vars
+   21:27  error  'estimateTokens' is defined but never used         @typescript-eslint/no-unused-vars
+   24:3   error  'AgentTimeoutError' is defined but never used      @typescript-eslint/no-unused-vars
+   25:3   error  'BrowserNotReadyError' is defined but never used   @typescript-eslint/no-unused-vars
+   26:3   error  'CommandExecutionError' is defined but never used  @typescript-eslint/no-unused-vars
+   32:39  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+   49:35  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+   57:10  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  256:16  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  261:12  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  289:95  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  309:14  error  'err' is defined but never used                    @typescript-eslint/no-unused-vars
+  323:14  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  390:12  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+
+/Users/ganesh/dev/remcon/src/main/conversation-manager.ts
+  139:11  error  'customCompact' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/ganesh/dev/remcon/src/main/execution-logger.ts
+  134:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  315:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  315:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/ganesh/dev/remcon/src/main/human-checkpoint.ts
+  215:14  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  218:25  error  'decisionType' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  260:36  error  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+
+/Users/ganesh/dev/remcon/src/main/ipc-handlers.ts
+  102:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  163:14  error  'err' is defined but never used           @typescript-eslint/no-unused-vars
+  312:89  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  371:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/ganesh/dev/remcon/src/main/screencast.ts
+  27:16  error  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  56:14  error  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/ganesh/dev/remcon/src/main/stall-detector.ts
+  377:5  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+/Users/ganesh/dev/remcon/src/main/strategy-generator.ts
+  215:57  error  'failureType' is defined but never used   @typescript-eslint/no-unused-vars
+  291:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/ganesh/dev/remcon/src/main/task-evaluator.ts
+  84:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  88:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/ganesh/dev/remcon/src/main/task-planner.ts
+   32:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  147:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/ganesh/dev/remcon/src/main/workflow-executor.ts
+   27:8   error  'StallCheckResult' is defined but never used                                 @typescript-eslint/no-unused-vars
+   31:3   error  'AgentTimeoutError' is defined but never used                                @typescript-eslint/no-unused-vars
+   32:3   error  'BrowserNotReadyError' is defined but never used                             @typescript-eslint/no-unused-vars
+   47:7   error  'STEP_TIMEOUT_MS' is assigned a value but never used                         @typescript-eslint/no-unused-vars
+  140:7   error  The value assigned to 'stagehand' is not used in subsequent statements       no-useless-assignment
+  149:22  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  231:5   error  The value assigned to 'stagehand' is not used in subsequent statements       no-useless-assignment
+  243:12  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  294:12  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  349:65  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  356:19  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  375:5   error  The value assigned to 'lastStallCheck' is not used in subsequent statements  no-useless-assignment
+  407:12  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  408:19  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  455:21  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+
+/Users/ganesh/dev/remcon/src/renderer/App.tsx
+  28:6  warning  React Hook useEffect has missing dependencies: 'handleAgentLog', 'handleAgentStatus', 'setControllerState', 'setError', 'setHostState', and 'setPendingControllerId'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/ganesh/dev/remcon/src/renderer/hooks/useWebRTC.ts
+  133:77  error    Unexpected any. Specify a different type                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  135:80  error    Unexpected any. Specify a different type                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  137:76  error    Unexpected any. Specify a different type                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  139:46  error    Unexpected any. Specify a different type                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  147:46  error    Unexpected any. Specify a different type                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  159:48  error    Unexpected any. Specify a different type                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  167:91  error    Unexpected any. Specify a different type                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  174:52  error    Unexpected any. Specify a different type                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  184:46  error    Unexpected any. Specify a different type                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  369:37  error    '_isSessionActive' is defined but never used                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+  465:38  warning  The ref value 'videoRef.current' will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by React, copy 'videoRef.current' to a variable inside the effect, and use that variable in the cleanup function  react-hooks/exhaustive-deps
+
+/Users/ganesh/dev/remcon/src/renderer/main.tsx
+  3:1  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+/Users/ganesh/dev/remcon/src/renderer/screens/BrowserPanel.tsx
+   36:9   warning  The 'sendData' conditional could make the dependencies of useEffect Hook (at line 68) change on every render. To fix this, wrap the initialization of 'sendData' in its own useMemo() Hook                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/exhaustive-deps
+   36:35  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+   73:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/ganesh/dev/remcon/src/renderer/screens/BrowserPanel.tsx:73:7
+  71 |     const activeTab = tabs.find(t => t.active);
+  72 |     if (activeTab && activeTab.url !== urlInput) {
+> 73 |       setUrlInput(activeTab.url);
+     |       ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  74 |     }
+  75 |   }, [tabs]);
+  76 |  react-hooks/set-state-in-effect
+   75:6   warning  React Hook useEffect has a missing dependency: 'urlInput'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react-hooks/exhaustive-deps
+  116:18  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+/Users/ganesh/dev/remcon/src/renderer/screens/BrowserPanel.tsx:116:18
+  114 |       type: 'SWITCH_TAB',
+  115 |       version: '1.0',
+> 116 |       timestamp: Date.now(),
+      |                  ^^^^^^^^^^ Cannot call impure function
+  117 |       payload: { tabId },
+  118 |     }, true);
+  119 |   }                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/purity
+
+/Users/ganesh/dev/remcon/src/renderer/screens/Settings.tsx
+  36:6  warning  React Hook useEffect has a missing dependency: 'loadSettings'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/ganesh/dev/remcon/src/renderer/screens/WorkflowEditorModal.tsx
+  22:11   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/ganesh/dev/remcon/src/renderer/screens/WorkflowEditorModal.tsx:22:11
+  20 |         const wf = workflows.find(w => w.id === editingWorkflowId);
+  21 |         if (wf) {
+> 22 |           setName(wf.name);
+     |           ^^^^^^^ Avoid calling setState() directly within an effect
+  23 |           setDescription(wf.description || '');
+  24 |           setStartUrl(wf.startUrl || '');
+  25 |           setSteps(wf.steps || []);  react-hooks/set-state-in-effect
+  62:134  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+
+/Users/ganesh/dev/remcon/src/renderer/screens/WorkflowsPanel.tsx
+  65:106  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/ganesh/dev/remcon/src/renderer/stores/useConnectionStore.ts
+  13:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  22:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 167 problems (158 errors, 9 warnings)
+  1 error and 4 warnings potentially fixable with the `--fix` option.
+

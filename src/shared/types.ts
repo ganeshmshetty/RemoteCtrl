@@ -228,6 +228,7 @@ export interface AppDiagnostics {
 export interface RemoteCtrlAPI {
   app: {
     getDiagnostics: () => Promise<AppDiagnostics>;
+    openSettings: () => Promise<void>;
   };
   host: {
     start: () => Promise<void>;
