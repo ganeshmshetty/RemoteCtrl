@@ -30,12 +30,13 @@ export interface SharedWorkflowRecord {
 
 // ─── Settings Types ────────────────────────────────────────────────────────────
 
-export type ApiProvider = 'openai' | 'anthropic' | 'gemini';
+export type ApiProvider = 'openai' | 'anthropic' | 'gemini' | 'groq' | 'deepseek' | 'nebius' | 'openrouter';
 export type BrowserMode = 'internal' | 'local_chrome';
 
 export interface AppSettings {
   signalingUrl: string;
   preferredProvider: ApiProvider;
+  preferredModel?: string;
   browserMode: BrowserMode;
   // API keys are NOT stored in renderer — Main process holds them
 }
@@ -271,6 +272,8 @@ export interface RemoteCtrlAPI {
     setSignalingUrl: (url: string) => Promise<void>;
     getPreferredProvider: () => Promise<ApiProvider>;
     setPreferredProvider: (provider: ApiProvider) => Promise<void>;
+    getPreferredModel: () => Promise<string | undefined>;
+    setPreferredModel: (model: string) => Promise<void>;
     getBrowserMode: () => Promise<BrowserMode>;
     setBrowserMode: (mode: BrowserMode) => Promise<void>;
     getHeadlessMode: () => Promise<boolean>;

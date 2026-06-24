@@ -65,6 +65,15 @@ export function setPreferredProvider(provider: ApiProvider) {
   saveSettings({ ...s, preferredProvider: provider });
 }
 
+export function getPreferredModel(): string | undefined {
+  return loadSettings().preferredModel;
+}
+
+export function setPreferredModel(model: string) {
+  const s = loadSettings();
+  saveSettings({ ...s, preferredModel: model });
+}
+
 export function getBrowserMode(): BrowserMode {
   return loadSettings().browserMode;
 }

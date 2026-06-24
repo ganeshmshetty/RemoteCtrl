@@ -18,6 +18,8 @@ import {
   setSignalingUrl,
   getPreferredProvider,
   setPreferredProvider,
+  getPreferredModel,
+  setPreferredModel,
   getBrowserMode,
   setBrowserMode,
   listWorkflows,
@@ -92,8 +94,16 @@ function registerIpcHandlers() {
   ipcMain.handle('settings:getPreferredProvider', async () => getPreferredProvider());
 
   ipcMain.handle('settings:setPreferredProvider', async (_e, provider: unknown) => {
-    const { provider: p } = SetPreferredProviderSchema.parse({ provider });
-    setPreferredProvider(p);
+    const p = SetPreferredProviderSchema.parse({ provider });
+    setPreferredProvider(p.provider);
+  });
+
+  ipcMain.handle('settings:getPreferredModel', async () => getPreferredModel());
+
+  ipcMain.handle('settings:setPreferredModel', async (_e, model: unknown) => {
+    if (typeof model === 'string') {
+      setPreferredModel(model);
+    }
   });
 
   ipcMain.handle('settings:getBrowserMode', async () => getBrowserMode());

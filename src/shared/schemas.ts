@@ -23,7 +23,7 @@ export const LocalWorkflowSchema = z.object({
 
 // ─── Settings Schemas ─────────────────────────────────────────────────────────
 
-export const ApiProviderSchema = z.enum(['openai', 'anthropic', 'gemini']);
+export const ApiProviderSchema = z.enum(['openai', 'anthropic', 'gemini', 'groq', 'deepseek', 'nebius', 'openrouter']);
 
 export const SetApiKeySchema = z.object({
   provider: ApiProviderSchema,
@@ -36,6 +36,10 @@ export const SetSignalingUrlSchema = z.object({
 
 export const SetPreferredProviderSchema = z.object({
   provider: ApiProviderSchema,
+});
+
+export const SetPreferredModelSchema = z.object({
+  model: z.string().min(1).max(200),
 });
 
 // ─── Host IPC Schemas ─────────────────────────────────────────────────────────
@@ -104,6 +108,7 @@ export const BrowserModeSchema = z.enum(['internal', 'local_chrome']);
 export const PersistedSettingsSchema = z.object({
   signalingUrl: z.string().url().default('https://remotectrl-signaling.onrender.com'),
   preferredProvider: ApiProviderSchema.default('openai'),
+  preferredModel: z.string().optional(),
   browserMode: BrowserModeSchema.default('internal'),
   headlessMode: z.boolean().default(true),
   // API keys are stored in a separate secure store — not in this file

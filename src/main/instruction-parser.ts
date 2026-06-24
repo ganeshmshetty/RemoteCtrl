@@ -3,6 +3,8 @@ import { generateObject } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createGroq } from '@ai-sdk/groq';
+import { createDeepSeek } from '@ai-sdk/deepseek';
 import { getPreferredProvider, getApiKey } from './storage.js';
 
 export interface ParsedInstruction {
@@ -55,6 +57,25 @@ export async function parseInstruction(instruction: string, currentUrl: string =
   } else if (provider === 'gemini') {
     const google = createGoogleGenerativeAI({ apiKey });
     model = google('gemini-2.5-flash');
+  } else if (provider === 'groq') {
+    const groq = createGroq({ apiKey });
+    model = groq('llama-3.3-70b-versatile');
+  } else if (provider === 'deepseek') {
+    const deepseek = createDeepSeek({ apiKey });
+    model = deepseek('deepseek-chat');
+  } else if (provider === 'nebius') {
+    const nebius = createOpenAI({ apiKey, baseURL: 'https://api.tokenfactory.nebius.com/v1/' });
+    model = nebius('meta-llama/Llama-3.3-70B-Instruct');
+  } else if (provider === 'openrouter') {
+    const openrouter = createOpenAI({ 
+      apiKey, 
+      baseURL: 'https://openrouter.ai/api/v1',
+      headers: {
+        'HTTP-Referer': 'https://github.com/ganeshmshetty/RemCtrl',
+        'X-Title': 'RemoteCtrl'
+      }
+    });
+    model = openrouter('anthropic/claude-3.5-sonnet');
   } else {
     throw new Error(`Unsupported provider: ${provider}`);
   }

@@ -4,28 +4,40 @@ import { X, Key, Server, Cpu, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { useSettingsStore } from '../stores/useWorkflowStore';
 import type { ApiProvider, BrowserMode } from '../../shared/types';
 
+const MODELS_BY_PROVIDER: Record<ApiProvider, string[]> = {
+  openai: ['gpt-4o', 'gpt-4o-mini', 'o1-mini'],
+  anthropic: ['claude-3-5-sonnet-latest', 'claude-3-haiku-20240307'],
+  gemini: ['gemini-1.5-pro', 'gemini-2.0-flash-exp'],
+  groq: ['llama-3.3-70b-versatile', 'mixtral-8x7b-32768'],
+  deepseek: ['deepseek-chat', 'deepseek-reasoner'],
+  nebius: ['meta-llama/Llama-3.3-70B-Instruct', 'mistralai/Mixtral-8x22B-Instruct-v0.1'],
+  openrouter: ['anthropic/claude-3.5-sonnet', 'openai/o1-mini', 'google/gemini-pro-1.5', 'meta-llama/llama-3.3-70b-instruct']
+};
+
 export function Settings() {
   const {
     preferredProvider,
+    preferredModel,
     hasOpenAIKey,
     hasAnthropicKey,
     hasGeminiKey,
+    hasGroqKey,
+    hasDeepseekKey,
+    hasNebiusKey,
+    hasOpenRouterKey,
     loadSettings,
     setSignalingUrl,
     setPreferredProvider,
+    setPreferredModel,
     setApiKey,
     headlessMode,
     setHeadlessMode,
   } = useSettingsStore();
 
-  const [openAIInput, setOpenAIInput] = useState('');
-  const [anthropicInput, setAnthropicInput] = useState('');
-  const [geminiInput, setGeminiInput] = useState('');
+  const [apiInput, setApiInput] = useState('');
   const [signalingInput, setSignalingInput] = useState('');
   const [browserMode, setBrowserMode] = useState('internal');
-  const [showOpenAI, setShowOpenAI] = useState(false);
-  const [showAnthropic, setShowAnthropic] = useState(false);
-  const [showGemini, setShowGemini] = useState(false);
+  const [showKey, setShowKey] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
 
   useEffect(() => {
@@ -35,13 +47,40 @@ export function Settings() {
     window.RemoteCtrlAPI?.settings.getBrowserMode().then(setBrowserMode);
   }, []);
 
-  async function handleSaveApiKey(provider: ApiProvider, value: string) {
-    if (!value.trim()) return;
-    await setApiKey(provider, value.trim());
-    if (provider === 'openai') setOpenAIInput('');
-    else if (provider === 'anthropic') setAnthropicInput('');
-    else setGeminiInput('');
+  function hasKeyForProvider(p: ApiProvider) {
+    switch (p) {
+      case 'openai': return hasOpenAIKey;
+      case 'anthropic': return hasAnthropicKey;
+      case 'gemini': return hasGeminiKey;
+      case 'groq': return hasGroqKey;
+      case 'deepseek': return hasDeepseekKey;
+      case 'nebius': return hasNebiusKey;
+      case 'openrouter': return hasOpenRouterKey;
+      default: return false;
+    }
+  }
+
+  async function handleSaveApiKey() {
+    if (!apiInput.trim()) return;
+    await setApiKey(preferredProvider, apiInput.trim());
+    setApiInput('');
     flash('Key saved');
+  }
+
+  async function handleProviderChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const p = e.target.value as ApiProvider;
+    await setPreferredProvider(p);
+    setApiInput(''); // clear input when switching
+    // Set default model for the new provider
+    const models = MODELS_BY_PROVIDER[p] || [];
+    if (models.length > 0) {
+      await setPreferredModel(models[0]);
+    }
+  }
+
+  async function handleModelChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const m = e.target.value;
+    await setPreferredModel(m);
   }
 
   async function handleSaveSignaling() {
@@ -69,6 +108,9 @@ export function Settings() {
     setTimeout(() => setSavedMsg(''), 2500);
   }
 
+  const hasCurrentKey = hasKeyForProvider(preferredProvider);
+  const models = MODELS_BY_PROVIDER[preferredProvider] || [];
+
   return (
     <div className="settings-root">
       <div className="drag-region settings-titlebar" />
@@ -83,8 +125,64 @@ export function Settings() {
 
       <div className="settings-body">
 
+        {/* Active AI Setup */}
+        <Section icon={<Cpu size={15} />} title="Active AI Setup">
+          <p className="settings-hint">
+            Select your preferred AI provider and model. The API key you enter will be associated with the selected provider. Keys are stored locally.
+          </p>
+          
+          <div className="settings-row" style={{ display: 'flex', gap: '16px' }}>
+            <SettingField label="Provider" status="" style={{ flex: 1 }}>
+              <select className="settings-select" value={preferredProvider} onChange={handleProviderChange}>
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic</option>
+                <option value="gemini">Google Gemini</option>
+                <option value="groq">Groq</option>
+                <option value="deepseek">DeepSeek</option>
+                <option value="nebius">Nebius</option>
+                <option value="openrouter">OpenRouter</option>
+              </select>
+            </SettingField>
+
+            <SettingField label="Model" status="" style={{ flex: 1 }}>
+              <select className="settings-select" value={preferredModel || ''} onChange={handleModelChange}>
+                {models.map(m => <option key={m} value={m}>{m}</option>)}
+                {!models.includes(preferredModel as string) && preferredModel && (
+                   <option value={preferredModel}>{preferredModel} (Custom)</option>
+                )}
+              </select>
+            </SettingField>
+          </div>
+
+          <SettingField label={`${preferredProvider.charAt(0).toUpperCase() + preferredProvider.slice(1)} API Key`} status={hasCurrentKey ? 'Configured' : 'Not set'} hasKey={hasCurrentKey}>
+            <div className="settings-input-row">
+              <div className="settings-input-wrap">
+                <input
+                  type={showKey ? 'text' : 'password'}
+                  className="settings-input"
+                  placeholder={hasCurrentKey ? '••••••••••••••••' : 'Enter API Key...'}
+                  value={apiInput}
+                  onChange={(e) => setApiInput(e.target.value)}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <button className="settings-eye-btn" onClick={() => setShowKey(!showKey)}>
+                  {showKey ? <EyeOff size={13} /> : <Eye size={13} />}
+                </button>
+              </div>
+              <button
+                className="btn btn-primary"
+                disabled={!apiInput.trim()}
+                onClick={handleSaveApiKey}
+              >
+                Save Key
+              </button>
+            </div>
+          </SettingField>
+        </Section>
+
         {/* Browser Mode */}
-        <Section icon={<Cpu size={15} />} title="Browser Connection">
+        <Section icon={<RefreshCw size={15} />} title="Browser Connection">
           <p className="settings-hint">
             <strong>Internal:</strong> Launches a fresh, isolated, headless browser.<br/>
             <strong>Local Chrome:</strong> Connects to your existing browser. You must launch Chrome with <code>--remote-debugging-port=9222</code>.
@@ -124,115 +222,8 @@ export function Settings() {
           )}
         </Section>
 
-        {/* API Keys */}
-        <Section icon={<Key size={15} />} title="API Keys">
-          <p className="settings-hint">
-            Keys are stored locally on this machine. They are never sent over the network.
-          </p>
-
-          <SettingField label="OpenAI API Key" status={hasOpenAIKey ? 'Configured' : 'Not set'} hasKey={hasOpenAIKey}>
-            <div className="settings-input-row">
-              <div className="settings-input-wrap">
-                <input
-                  type={showOpenAI ? 'text' : 'password'}
-                  className="settings-input"
-                  placeholder={hasOpenAIKey ? '••••••••••••••••' : 'sk-...'}
-                  value={openAIInput}
-                  onChange={(e) => setOpenAIInput(e.target.value)}
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-                <button className="settings-eye-btn" onClick={() => setShowOpenAI(!showOpenAI)}>
-                  {showOpenAI ? <EyeOff size={13} /> : <Eye size={13} />}
-                </button>
-              </div>
-              <button
-                className="btn btn-primary"
-                disabled={!openAIInput.trim()}
-                onClick={() => handleSaveApiKey('openai', openAIInput)}
-              >
-                Save
-              </button>
-            </div>
-          </SettingField>
-
-          <SettingField label="Anthropic API Key" status={hasAnthropicKey ? 'Configured' : 'Not set'} hasKey={hasAnthropicKey}>
-            <div className="settings-input-row">
-              <div className="settings-input-wrap">
-                <input
-                  type={showAnthropic ? 'text' : 'password'}
-                  className="settings-input"
-                  placeholder={hasAnthropicKey ? '••••••••••••••••' : 'sk-ant-...'}
-                  value={anthropicInput}
-                  onChange={(e) => setAnthropicInput(e.target.value)}
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-                <button className="settings-eye-btn" onClick={() => setShowAnthropic(!showAnthropic)}>
-                  {showAnthropic ? <EyeOff size={13} /> : <Eye size={13} />}
-                </button>
-              </div>
-              <button
-                className="btn btn-primary"
-                disabled={!anthropicInput.trim()}
-                onClick={() => handleSaveApiKey('anthropic', anthropicInput)}
-              >
-                Save
-              </button>
-            </div>
-          </SettingField>
-
-          <SettingField label="Gemini API Key" status={hasGeminiKey ? 'Configured' : 'Not set'} hasKey={hasGeminiKey}>
-            <div className="settings-input-row">
-              <div className="settings-input-wrap">
-                <input
-                  type={showGemini ? 'text' : 'password'}
-                  className="settings-input"
-                  placeholder={hasGeminiKey ? '••••••••••••••••' : 'AIzaSy...'}
-                  value={geminiInput}
-                  onChange={(e) => setGeminiInput(e.target.value)}
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-                <button className="settings-eye-btn" onClick={() => setShowGemini(!showGemini)}>
-                  {showGemini ? <EyeOff size={13} /> : <Eye size={13} />}
-                </button>
-              </div>
-              <button
-                className="btn btn-primary"
-                disabled={!geminiInput.trim()}
-                onClick={() => handleSaveApiKey('gemini', geminiInput)}
-              >
-                Save
-              </button>
-            </div>
-          </SettingField>
-        </Section>
-
-        {/* Model Preference */}
-        <Section icon={<Cpu size={15} />} title="Model Preference">
-          <SettingField label="Preferred Provider" status="">
-            <div className="settings-radio-group">
-              {(['openai', 'anthropic', 'gemini'] as ApiProvider[]).map((p) => (
-                <label key={p} className="settings-radio">
-                  <input
-                    type="radio"
-                    name="provider"
-                    value={p}
-                    checked={preferredProvider === p}
-                    onChange={() => setPreferredProvider(p)}
-                  />
-                  <span className="settings-radio-label">
-                    {p === 'openai' ? 'OpenAI' : p === 'anthropic' ? 'Anthropic (Claude)' : 'Gemini (3.1 Flash)'}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </SettingField>
-        </Section>
-
         {/* Connection */}
-        <Section icon={<Server size={15} />} title="Connection">
+        <Section icon={<Server size={15} />} title="Advanced Connection">
           <SettingField label="Signaling Server URL" status="">
             <div className="settings-input-row">
               <input
@@ -247,18 +238,16 @@ export function Settings() {
               </button>
             </div>
           </SettingField>
-        </Section>
 
-        {/* Browser */}
-        <Section icon={<RefreshCw size={15} />} title="Browser">
-          <p className="settings-hint">
-            Reset the dedicated Playwright browser profile. This clears all session data,
-            cookies, and cached content.
-          </p>
-          <button className="btn btn-danger-outline settings-reset-btn" onClick={handleResetBrowser}>
-            <RefreshCw size={13} />
-            Reset Browser Profile
-          </button>
+          <div style={{ marginTop: 12 }}>
+            <p className="settings-hint">
+              Reset the dedicated Playwright browser profile. This clears all session data, cookies, and cached content.
+            </p>
+            <button className="btn btn-danger-outline settings-reset-btn" onClick={handleResetBrowser}>
+              <RefreshCw size={13} />
+              Reset Browser Profile
+            </button>
+          </div>
         </Section>
 
         </div>{/* end settings-body */}
@@ -353,20 +342,20 @@ export function Settings() {
               position: relative;
               flex: 1;
             }
-            .settings-input {
+            .settings-input, .settings-select {
               width: 100%;
               height: 36px;
-              padding: 0 36px 0 12px;
+              padding: 0 12px;
               background: var(--bg-surface);
               border: 1px solid var(--border);
               border-radius: var(--radius-sm);
               color: var(--text-primary);
               font-size: 13px;
-              font-family: var(--font-mono);
               outline: none;
               transition: border-color var(--transition);
             }
-            .settings-input:focus { border-color: var(--accent); }
+            .settings-input { padding-right: 36px; font-family: var(--font-mono); }
+            .settings-input:focus, .settings-select:focus { border-color: var(--accent); }
             .settings-eye-btn {
               position: absolute;
               right: 8px;
@@ -433,14 +422,16 @@ function SettingField({
   status,
   hasKey,
   children,
+  style,
 }: {
   label: string;
   status: string;
   hasKey?: boolean;
   children: React.ReactNode;
+  style?: React.CSSProperties;
 }) {
   return (
-    <div className="settings-field">
+    <div className="settings-field" style={style}>
       <div className="settings-field-label-row">
         <div className="settings-field-label">{label}</div>
         {status && (

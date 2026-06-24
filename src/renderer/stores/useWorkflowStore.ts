@@ -64,9 +64,14 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 interface SettingsState {
   signalingUrl: string;
   preferredProvider: ApiProvider;
+  preferredModel?: string;
   hasOpenAIKey: boolean;
   hasAnthropicKey: boolean;
   hasGeminiKey: boolean;
+  hasGroqKey: boolean;
+  hasDeepseekKey: boolean;
+  hasNebiusKey: boolean;
+  hasOpenRouterKey: boolean;
   headlessMode: boolean;
   isLoading: boolean;
 
@@ -74,6 +79,7 @@ interface SettingsState {
   loadSettings: () => Promise<void>;
   setSignalingUrl: (url: string) => Promise<void>;
   setPreferredProvider: (provider: ApiProvider) => Promise<void>;
+  setPreferredModel: (model: string) => Promise<void>;
   setApiKey: (provider: ApiProvider, value: string) => Promise<void>;
   setHeadlessMode: (headless: boolean) => Promise<void>;
   isSettingsOpen: boolean;
@@ -83,9 +89,14 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>((set) => ({
   signalingUrl: 'http://localhost:3001',
   preferredProvider: 'openai',
+  preferredModel: undefined,
   hasOpenAIKey: false,
   hasAnthropicKey: false,
   hasGeminiKey: false,
+  hasGroqKey: false,
+  hasDeepseekKey: false,
+  hasNebiusKey: false,
+  hasOpenRouterKey: false,
   headlessMode: true,
   isLoading: false,
   isSettingsOpen: false,
@@ -93,16 +104,21 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   loadSettings: async () => {
     set({ isLoading: true });
     try {
-      const [signalingUrl, preferredProvider, hasOpenAIKey, hasAnthropicKey, hasGeminiKey, headlessMode] =
+      const [signalingUrl, preferredProvider, preferredModel, hasOpenAIKey, hasAnthropicKey, hasGeminiKey, hasGroqKey, hasDeepseekKey, hasNebiusKey, hasOpenRouterKey, headlessMode] =
         await Promise.all([
           window.RemoteCtrlAPI.settings.getSignalingUrl(),
           window.RemoteCtrlAPI.settings.getPreferredProvider(),
+          window.RemoteCtrlAPI.settings.getPreferredModel(),
           window.RemoteCtrlAPI.settings.hasApiKey('openai'),
           window.RemoteCtrlAPI.settings.hasApiKey('anthropic'),
           window.RemoteCtrlAPI.settings.hasApiKey('gemini'),
+          window.RemoteCtrlAPI.settings.hasApiKey('groq'),
+          window.RemoteCtrlAPI.settings.hasApiKey('deepseek'),
+          window.RemoteCtrlAPI.settings.hasApiKey('nebius'),
+          window.RemoteCtrlAPI.settings.hasApiKey('openrouter'),
           window.RemoteCtrlAPI.settings.getHeadlessMode(),
         ]);
-      set({ signalingUrl, preferredProvider, hasOpenAIKey, hasAnthropicKey, hasGeminiKey, headlessMode, isLoading: false });
+      set({ signalingUrl, preferredProvider, preferredModel, hasOpenAIKey, hasAnthropicKey, hasGeminiKey, hasGroqKey, hasDeepseekKey, hasNebiusKey, hasOpenRouterKey, headlessMode, isLoading: false });
     } catch {
       set({ isLoading: false });
     }
@@ -118,9 +134,24 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     set({ preferredProvider: provider });
   },
 
+  setPreferredModel: async (model) => {
+    await window.RemoteCtrlAPI.settings.setPreferredModel(model);
+    set({ preferredModel: model });
+  },
+
   setApiKey: async (provider, value) => {
     await window.RemoteCtrlAPI.settings.setApiKey(provider, value);
-    set(provider === 'openai' ? { hasOpenAIKey: true } : provider === 'anthropic' ? { hasAnthropicKey: true } : { hasGeminiKey: true });
+    set((state) => {
+      const updates: Partial<SettingsState> = {};
+      if (provider === 'openai') updates.hasOpenAIKey = !!value;
+      if (provider === 'anthropic') updates.hasAnthropicKey = !!value;
+      if (provider === 'gemini') updates.hasGeminiKey = !!value;
+      if (provider === 'groq') updates.hasGroqKey = !!value;
+      if (provider === 'deepseek') updates.hasDeepseekKey = !!value;
+      if (provider === 'nebius') updates.hasNebiusKey = !!value;
+      if (provider === 'openrouter') updates.hasOpenRouterKey = !!value;
+      return updates;
+    });
   },
 
   setHeadlessMode: async (headless) => {

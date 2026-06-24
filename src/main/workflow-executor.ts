@@ -13,6 +13,7 @@
 import { Stagehand } from '@browserbasehq/stagehand';
 import type { Page } from 'playwright';
 import { parseInstruction } from './instruction-parser.js';
+import { getPreferredModel } from './storage.js';
 import type {
   AgentWorkflowBatchPayload,
   WorkflowRunStatus,
@@ -475,15 +476,26 @@ async function executeMultiStepAction(
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function getModelName(provider: string): string {
+  const preferred = getPreferredModel();
+  if (preferred) return preferred;
+
   switch (provider) {
     case 'openai':
-      return 'openai/gpt-4o';
+      return 'gpt-4o';
     case 'anthropic':
-      return 'anthropic/claude-sonnet-4-6';
+      return 'claude-3-5-sonnet-latest';
     case 'gemini':
-      return 'google/gemini-3.1-flash-lite';
+      return 'gemini-1.5-pro';
+    case 'groq':
+      return 'llama-3.3-70b-versatile';
+    case 'deepseek':
+      return 'deepseek-chat';
+    case 'nebius':
+      return 'meta-llama/Llama-3.3-70B-Instruct';
+    case 'openrouter':
+      return 'anthropic/claude-3.5-sonnet';
     default:
-      return 'google/gemini-3.1-flash-lite';
+      return 'gpt-4o';
   }
 }
 
