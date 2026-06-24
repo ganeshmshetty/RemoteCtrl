@@ -40,6 +40,11 @@ export function Settings() {
   const [showKey, setShowKey] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
 
+  const [fetchedModels, setFetchedModels] = useState<Record<string, string[]>>({});
+  const [isFetchingModels, setIsFetchingModels] = useState(false);
+  const [isCustomModel, setIsCustomModel] = useState(false);
+  const [customModelInput, setCustomModelInput] = useState('');
+
   useEffect(() => {
     loadSettings().then(() => {
       setSignalingInput(useSettingsStore.getState().signalingUrl);
@@ -71,17 +76,54 @@ export function Settings() {
     const p = e.target.value as ApiProvider;
     await setPreferredProvider(p);
     setApiInput(''); // clear input when switching
+    setIsCustomModel(false);
     // Set default model for the new provider
-    const models = MODELS_BY_PROVIDER[p] || [];
-    if (models.length > 0) {
-      await setPreferredModel(models[0]);
+    const available = Array.from(new Set([...(MODELS_BY_PROVIDER[p] || []), ...(fetchedModels[p] || [])]));
+    if (available.length > 0) {
+      await setPreferredModel(available[0]);
     }
   }
 
   async function handleModelChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const m = e.target.value;
-    await setPreferredModel(m);
+    if (m === '__custom__') {
+      setIsCustomModel(true);
+      setCustomModelInput(preferredModel || '');
+    } else {
+      await setPreferredModel(m);
+    }
   }
+
+  async function handleSaveCustomModel() {
+    if (customModelInput.trim()) {
+      await setPreferredModel(customModelInput.trim());
+      setIsCustomModel(false);
+      flash('Custom model saved');
+    }
+  }
+
+  async function fetchModelsSilently(provider: ApiProvider) {
+    setIsFetchingModels(true);
+    try {
+      const ms = await window.RemoteCtrlAPI?.settings.fetchModels(provider);
+      if (ms && ms.length > 0) {
+        setFetchedModels(prev => ({ ...prev, [provider]: ms }));
+      }
+    } catch (e) {
+      // ignore
+    }
+    setIsFetchingModels(false);
+  }
+
+  // Auto-fetch models for the active provider
+  useEffect(() => {
+    if (['openai', 'groq', 'deepseek', 'nebius', 'openrouter'].includes(preferredProvider)) {
+      const hasKey = hasKeyForProvider(preferredProvider);
+      if ((hasKey || preferredProvider === 'openrouter') && !fetchedModels[preferredProvider]) {
+        fetchModelsSilently(preferredProvider);
+      }
+    }
+  }, [preferredProvider, hasOpenAIKey, hasGroqKey, hasDeepseekKey, hasNebiusKey, hasOpenRouterKey, fetchedModels]);
 
   async function handleSaveSignaling() {
     try {
@@ -109,7 +151,7 @@ export function Settings() {
   }
 
   const hasCurrentKey = hasKeyForProvider(preferredProvider);
-  const models = MODELS_BY_PROVIDER[preferredProvider] || [];
+  const models = Array.from(new Set([...(MODELS_BY_PROVIDER[preferredProvider] || []), ...(fetchedModels[preferredProvider] || [])]));
 
   return (
     <div className="settings-root">
@@ -145,12 +187,34 @@ export function Settings() {
             </SettingField>
 
             <SettingField label="Model" status="" style={{ flex: 1 }}>
-              <select className="settings-select" value={preferredModel || ''} onChange={handleModelChange}>
-                {models.map(m => <option key={m} value={m}>{m}</option>)}
-                {!models.includes(preferredModel as string) && preferredModel && (
-                   <option value={preferredModel}>{preferredModel} (Custom)</option>
-                )}
-              </select>
+              {isCustomModel ? (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    className="settings-input"
+                    value={customModelInput}
+                    onChange={e => setCustomModelInput(e.target.value)}
+                    placeholder="e.g. custom-model-name"
+                    autoFocus
+                  />
+                  <button className="btn btn-primary" onClick={handleSaveCustomModel} disabled={!customModelInput.trim()}>
+                    Save
+                  </button>
+                  <button className="btn btn-secondary" onClick={() => setIsCustomModel(false)}>
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <select className="settings-select" value={preferredModel || ''} onChange={handleModelChange} style={{ flex: 1 }}>
+                    {models.map(m => <option key={m} value={m}>{m}</option>)}
+                    {!models.includes(preferredModel as string) && preferredModel && (
+                       <option value={preferredModel}>{preferredModel} (Custom)</option>
+                    )}
+                    <option value="__custom__">Custom Model...</option>
+                  </select>
+                </div>
+              )}
             </SettingField>
           </div>
 

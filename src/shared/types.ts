@@ -274,6 +274,7 @@ export interface RemoteCtrlAPI {
     setPreferredProvider: (provider: ApiProvider) => Promise<void>;
     getPreferredModel: () => Promise<string | undefined>;
     setPreferredModel: (model: string) => Promise<void>;
+    fetchModels: (provider: ApiProvider) => Promise<string[]>;
     getBrowserMode: () => Promise<BrowserMode>;
     setBrowserMode: (mode: BrowserMode) => Promise<void>;
     getHeadlessMode: () => Promise<boolean>;

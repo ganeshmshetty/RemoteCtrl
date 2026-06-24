@@ -106,6 +106,54 @@ function registerIpcHandlers() {
     }
   });
 
+  ipcMain.handle('settings:fetchModels', async (_e, provider: unknown) => {
+    if (typeof provider !== 'string') return [];
+    
+    let url = '';
+    const key = getApiKey(provider as any);
+    if (!key && provider !== 'openrouter') return []; // OpenRouter has public models, but passing key is better
+    
+    let headers: Record<string, string> = {};
+    if (key) {
+      headers['Authorization'] = `Bearer ${key}`;
+    }
+
+    switch (provider) {
+      case 'openai':
+        url = 'https://api.openai.com/v1/models';
+        break;
+      case 'groq':
+        url = 'https://api.groq.com/openai/v1/models';
+        break;
+      case 'deepseek':
+        url = 'https://api.deepseek.com/models';
+        break;
+      case 'nebius':
+        url = 'https://api.tokenfactory.nebius.com/v1/models';
+        break;
+      case 'openrouter':
+        url = 'https://openrouter.ai/api/v1/models';
+        headers['HTTP-Referer'] = 'https://github.com/ganeshmshetty/RemCtrl';
+        headers['X-Title'] = 'RemoteCtrl';
+        break;
+      default:
+        return [];
+    }
+
+    try {
+      const res = await fetch(url, { headers });
+      if (!res.ok) return [];
+      const data = await res.json() as any;
+      if (data && data.data && Array.isArray(data.data)) {
+        return data.data.map((m: any) => m.id).filter(Boolean);
+      }
+      return [];
+    } catch (e) {
+      console.error('Failed to fetch models', e);
+      return [];
+    }
+  });
+
   ipcMain.handle('settings:getBrowserMode', async () => getBrowserMode());
 
   ipcMain.handle('settings:setBrowserMode', async (_e, mode: unknown) => {
