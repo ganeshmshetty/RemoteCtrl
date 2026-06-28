@@ -15,15 +15,12 @@ import { Stagehand } from '@browserbasehq/stagehand';
 import { getPage, getCdpUrl } from './browser-manager.js';
 import type { AgentLogPayload } from '../shared/types.js';
 import type { Page } from 'playwright';
-import { StallDetector, createPageFingerprint } from './stall-detector.js';
+import { StallDetector } from './stall-detector.js';
 import { ConversationManager } from './conversation-manager.js';
 import { CheckpointManager, generateTaskId } from './checkpoint-manager.js';
-import { ExecutionLogger, estimateTokens } from './execution-logger.js';
+import { ExecutionLogger } from './execution-logger.js';
 import {
   AgentStalledError,
-  AgentTimeoutError,
-  BrowserNotReadyError,
-  CommandExecutionError,
   extractError,
 } from './errors.js';
 

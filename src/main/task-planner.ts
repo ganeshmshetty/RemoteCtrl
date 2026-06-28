@@ -86,15 +86,8 @@ Respond with the required JSON structure.`;
 
 export class TaskPlanner {
   private conversationManager: ConversationManager;
-  private options: Required<PlanningOptions>;
 
-  constructor(options?: PlanningOptions) {
-    this.options = {
-      maxSubtasks: options?.maxSubtasks ?? 50,
-      includeDependencies: options?.includeDependencies ?? true,
-      model: options?.model ?? 'google/gemini-3.1-flash-lite',
-    };
-
+  constructor(_options?: PlanningOptions) {
     this.conversationManager = new ConversationManager({
       systemPrompt: PLANNING_SYSTEM_PROMPT,
     });

@@ -136,7 +136,7 @@ export class ConversationManager {
   /**
    * Compact conversation to reduce token count
    */
-  compact(customCompact?: (messages: Message[]) => Promise<string>): void {
+  compact(_customCompact?: (messages: Message[]) => Promise<string>): void {
     if (this.messages.length <= this.policy.minKeep) {
       return; // Nothing to compact
     }

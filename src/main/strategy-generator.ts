@@ -212,7 +212,7 @@ Generate a new plan that avoids the failure point.
     return 'stall_recovery'; // Default fallback
   }
 
-  private calculateConfidence(context: StrategyContext, failureType: string): 'low' | 'medium' | 'high' {
+  private calculateConfidence(context: StrategyContext, _failureType: string): 'low' | 'medium' | 'high' {
     // Higher confidence if we have more steps remaining
     const remainingRatio = context.stepsRemaining / (context.stepsAttempted + context.stepsRemaining);
     

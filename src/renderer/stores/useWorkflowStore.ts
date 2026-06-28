@@ -141,7 +141,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
 
   setApiKey: async (provider, value) => {
     await window.RemoteCtrlAPI.settings.setApiKey(provider, value);
-    set((state) => {
+    set(() => {
       const updates: Partial<SettingsState> = {};
       if (provider === 'openai') updates.hasOpenAIKey = !!value;
       if (provider === 'anthropic') updates.hasAnthropicKey = !!value;

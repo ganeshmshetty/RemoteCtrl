@@ -14,7 +14,7 @@ import { Stagehand } from '@browserbasehq/stagehand';
 import { getPage, getCdpUrl } from './browser-manager.js';
 import { parseInstruction } from './instruction-parser.js';
 import { getPreferredModel } from './storage.js';
-import type { AgentStatusPayload, AgentLogPayload } from '../shared/types.js';
+import type { AgentStatusPayload, AgentLogPayload, ApiProvider } from '../shared/types.js';
 import type { Page } from 'playwright';
 import {
   StallDetector,
@@ -24,10 +24,7 @@ import {
 import {
   AgentStalledError,
   AgentTimeoutError,
-  BrowserNotReadyError,
-  CommandExecutionError,
   RetryExhaustedError,
-  StagehandConnectionError,
   extractError,
 } from './errors.js';
 
@@ -94,7 +91,7 @@ export async function runAgentCommand(
   action: 'act' | 'observe' | 'extract',
   instruction: string,
   apiKey: string,
-  provider: 'openai' | 'anthropic' | 'gemini',
+  provider: ApiProvider,
   onStatus: AgentStatusCb,
   onLog: AgentLogCb,
 ): Promise<void> {

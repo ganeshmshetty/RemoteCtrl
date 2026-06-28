@@ -85,7 +85,6 @@ export class ExecutionLogger {
   private startTime: number;
   private endTime?: number;
   private status: 'running' | 'completed' | 'failed' | 'cancelled' = 'running';
-  private checkpointPath?: string;
 
   constructor(taskId: string, task: string) {
     this.taskId = taskId;
@@ -271,7 +270,6 @@ export class ExecutionLogger {
         }),
         'utf-8',
       );
-      this.checkpointPath = checkpointPath;
     } catch (err) {
       console.error('[ExecutionLogger] Failed to save checkpoint:', err);
     }

@@ -9,7 +9,7 @@
  * Checkpoints are saved to disk and can be loaded later.
  */
 
-import { writeFile, readFile, mkdir, readdir, stat } from 'fs/promises';
+import { writeFile, readFile, mkdir, readdir } from 'fs/promises';
 import { join, dirname } from 'path';
 import { app } from 'electron';
 import { ConversationManager, type Message } from './conversation-manager.js';

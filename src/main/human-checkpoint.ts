@@ -215,7 +215,7 @@ export class UncertaintyDetector {
     options: any[];
     taskImportance: 'low' | 'medium' | 'high';
   }): UncertaintyCheck {
-    const { confidence, decisionType, options, taskImportance } = context;
+    const { confidence, options, taskImportance } = context;
 
     // Low confidence
     if (confidence < this.thresholds.lowConfidence) {

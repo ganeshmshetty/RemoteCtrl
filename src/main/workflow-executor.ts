@@ -25,12 +25,9 @@ import { getPreferredProvider, getApiKey } from './storage.js';
 import {
   StallDetector,
   createPageFingerprint,
-  type StallCheckResult,
 } from './stall-detector.js';
 import {
   AgentStalledError,
-  AgentTimeoutError,
-  BrowserNotReadyError,
   CommandExecutionError,
   RetryExhaustedError,
   extractError,
@@ -45,7 +42,6 @@ export type WorkflowLogCb = (l: AgentLogPayload) => void;
 
 // ─── Configuration ──────────────────────────────────────────────────────────
 
-const STEP_TIMEOUT_MS = 90_000;
 const STALL_CHECK_INTERVAL = 3;
 
 interface RetryConfig {

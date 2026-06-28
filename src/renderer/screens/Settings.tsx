@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-import { X, Key, Server, Cpu, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { X, Server, Cpu, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { useSettingsStore } from '../stores/useWorkflowStore';
 import type { ApiProvider, BrowserMode } from '../../shared/types';
 
@@ -41,7 +41,6 @@ export function Settings() {
   const [savedMsg, setSavedMsg] = useState('');
 
   const [fetchedModels, setFetchedModels] = useState<Record<string, string[]>>({});
-  const [isFetchingModels, setIsFetchingModels] = useState(false);
   const [isCustomModel, setIsCustomModel] = useState(false);
   const [customModelInput, setCustomModelInput] = useState('');
 
@@ -103,7 +102,6 @@ export function Settings() {
   }
 
   async function fetchModelsSilently(provider: ApiProvider) {
-    setIsFetchingModels(true);
     try {
       const ms = await window.RemoteCtrlAPI?.settings.fetchModels(provider);
       if (ms && ms.length > 0) {
@@ -112,7 +110,6 @@ export function Settings() {
     } catch (e) {
       // ignore
     }
-    setIsFetchingModels(false);
   }
 
   // Auto-fetch models for the active provider
