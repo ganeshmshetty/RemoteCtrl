@@ -146,7 +146,6 @@ function registerIpcHandlers() {
 
     try {
       const res = await fetch(url, { headers, signal: controller.signal });
-      clearTimeout(timeoutId);
       if (!res.ok) return [];
       const data = await res.json() as any;
       if (data && data.data && Array.isArray(data.data)) {
@@ -168,6 +167,8 @@ function registerIpcHandlers() {
     } catch (e) {
       console.error('Failed to fetch models', e);
       return [];
+    } finally {
+      clearTimeout(timeoutId);
     }
   });
 
