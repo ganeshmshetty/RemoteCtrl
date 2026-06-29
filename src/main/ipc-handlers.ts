@@ -141,8 +141,12 @@ function registerIpcHandlers() {
         return [];
     }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
     try {
-      const res = await fetch(url, { headers });
+      const res = await fetch(url, { headers, signal: controller.signal });
+      clearTimeout(timeoutId);
       if (!res.ok) return [];
       const data = await res.json() as any;
       if (data && data.data && Array.isArray(data.data)) {
