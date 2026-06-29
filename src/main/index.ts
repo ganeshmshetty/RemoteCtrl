@@ -173,6 +173,7 @@ if (!gotTheLock) {
 
     // ── Auto Updater configuration ──
     autoUpdater.autoDownload = false; // Prompt user before downloading
+    autoUpdater.allowPrerelease = true; // Allow downloading pre-releases
 
     autoUpdater.on('update-available', async (info) => {
       const { response } = await dialog.showMessageBox({
