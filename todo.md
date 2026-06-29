@@ -4,7 +4,7 @@
 - [x] **Routing mismatch on host side**: Checkpoint responses and workflow runs currently route via WebRTC (`sendData`) but the host expects them via IPC (`browser:submitCheckpoint` / `browser:startWorkflow`). This causes agent deadlocks on checkpoints on the host side.
 - [x] **"Save as Workflow" button is broken**: The button in `AgentPanel.tsx` has no `onClick` handler.
 - [x] **Duplicate event listeners leak**: `onMessage` in `BrowserPanel.tsx` is called inline during render, creating duplicate listeners on every render cycle. Wrap it in `useEffect`.
-- [ ] **Windows config path issue**: `human-checkpoint.ts` uses `~/.config/RemoteCtrl` (Linux/macOS style). Update it to use `app.getPath('userData')`.
+- [x] **Windows config path issue**: `human-checkpoint.ts` uses `~/.config/RemoteCtrl` (Linux/macOS style). Update it to use `app.getPath('userData')`.
 - [x] **Missing single-instance lock**: Two instances of the app can run simultaneously. Add `app.requestSingleInstanceLock()` in `index.ts`.
 
 ## 🟡 Medium Priority (UX / Performance)

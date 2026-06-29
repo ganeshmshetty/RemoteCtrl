@@ -13,8 +13,7 @@
 
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
-import { homedir } from 'os';
-import { BrowserWindow } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import type { AgentCheckpointPayload, CheckpointResponse } from '../shared/types.js';
 
 // Global registry to handle IPC routing to the right manager
@@ -57,8 +56,7 @@ export interface CheckpointOption {
 
 // ─── Human Checkpoint Manager ───────────────────────────────────────────────
 
-const CONFIG_DIR = join(homedir(), '.config', 'RemoteCtrl');
-const DEFAULT_CHECKPOINT_FILE = join(CONFIG_DIR, 'human-checkpoints.json');
+const DEFAULT_CHECKPOINT_FILE = join(app.getPath('userData'), 'human-checkpoints.json');
 
 export class HumanCheckpointManager {
   private checkpointFile: string;
