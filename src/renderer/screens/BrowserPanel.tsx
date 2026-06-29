@@ -7,7 +7,7 @@ import { ConnectionPlaceholder } from './ConnectionPlaceholder';
 import type { TabInfo, AgentStatusPayload, AgentLogPayload, WorkflowRunStatus, WorkflowStepStatus, AgentCheckpointPayload } from '../../shared/types';
 
 export function BrowserPanel() {
-  const { controllerState, hostState, error } = useConnectionStore();
+  const { controllerState, hostState, error, pin } = useConnectionStore();
   const { isTakeoverActive } = useAgentStore();
   const [tabs, setTabs] = useState<TabInfo[]>([]);
   const [urlInput, setUrlInput] = useState('');
@@ -228,7 +228,6 @@ export function BrowserPanel() {
   }
 
   function handleCopyPin() {
-    const pin = useConnectionStore.getState().pin;
     if (pin) {
       navigator.clipboard.writeText(pin);
       setCopiedPin(true);
@@ -277,7 +276,7 @@ export function BrowserPanel() {
                     letterSpacing: '0.1em',
                     color: 'var(--accent)',
                   }}>
-                    {useConnectionStore.getState().pin || '...'}
+                    {pin || '...'}
                   </div>
                   <button 
                     className="icon-btn" 
