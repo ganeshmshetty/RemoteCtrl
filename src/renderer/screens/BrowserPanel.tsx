@@ -23,7 +23,7 @@ export function BrowserPanel() {
   const isConnecting = 
     ['SIGNALING_CONNECTING', 'WAITING_FOR_HOST_APPROVAL', 'WEBRTC_CONNECTING'].includes(controllerState);
 
-  const isHostWaiting = ['SIGNALING_CONNECTING', 'WAITING_FOR_CONTROLLER', 'AWAITING_HOST_APPROVAL'].includes(hostState);
+  const isHostWaiting = ['REGISTERING_PIN', 'SIGNALING_CONNECTING', 'WAITING_FOR_CONTROLLER', 'AWAITING_HOST_APPROVAL'].includes(hostState);
 
   const isHost = hostState !== 'IDLE' && hostState !== 'REGISTERING_PIN' && hostState !== 'WAITING_FOR_CONTROLLER' && hostState !== 'AWAITING_HOST_APPROVAL';
   const isController = controllerState !== 'IDLE';
@@ -263,7 +263,7 @@ export function BrowserPanel() {
       <div className="browser-video-container">
         {isHostWaiting ? (
           <div className="browser-loading" style={{ gap: 20 }}>
-            {['SIGNALING_CONNECTING', 'WAITING_FOR_CONTROLLER'].includes(hostState) && (
+            {['REGISTERING_PIN', 'SIGNALING_CONNECTING', 'WAITING_FOR_CONTROLLER'].includes(hostState) && (
               <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <div style={{ fontSize: '18px', fontWeight: 600 }}>Waiting for Controller</div>
                 <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '8px' }}>Share this PIN to allow remote control:</div>
