@@ -6,15 +6,19 @@ interface UIState {
   rightPanelTab: RightPanelTab;
   isWorkflowEditorOpen: boolean;
   editingWorkflowId: string | null;
+  isSettingsOpen: boolean;
   setRightPanelTab: (tab: RightPanelTab) => void;
   openWorkflowEditor: (workflowId?: string) => void;
   closeWorkflowEditor: () => void;
+  openSettings: () => void;
+  closeSettings: () => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
   rightPanelTab: 'agent',
   isWorkflowEditorOpen: false,
   editingWorkflowId: null,
+  isSettingsOpen: false,
 
   setRightPanelTab: (tab) => set({ rightPanelTab: tab }),
   
@@ -27,4 +31,7 @@ export const useUIStore = create<UIState>((set) => ({
     isWorkflowEditorOpen: false, 
     editingWorkflowId: null 
   }),
+
+  openSettings: () => set({ isSettingsOpen: true }),
+  closeSettings: () => set({ isSettingsOpen: false }),
 }));

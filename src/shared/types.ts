@@ -229,7 +229,6 @@ export interface AppDiagnostics {
 export interface RemoteCtrlAPI {
   app: {
     getDiagnostics: () => Promise<AppDiagnostics>;
-    openSettings: () => Promise<void>;
   };
   host: {
     start: () => Promise<void>;
@@ -302,6 +301,7 @@ export interface RemoteCtrlAPI {
     tabsChange: (cb: (tabs: TabInfo[]) => void) => () => void;
     screencastFrame: (cb: (frameData: Uint8Array) => void) => () => void;
     agentCheckpoint: (cb: (payload: AgentCheckpointPayload) => void) => () => void;
+    openSettings: (cb: () => void) => () => void;
   };
 }
 

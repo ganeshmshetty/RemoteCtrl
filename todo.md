@@ -1,73 +1,26 @@
-# RemoteCtrl Agent & UI Enhancements To-Do
+# RemoteCtrl TODO List
 
-This document tracks upcoming core functionality enhancements focusing exclusively on Agent logic, Task Execution, and their respective UI/UX implementations.
+## 🔴 Critical Bugs
+- [x] **Routing mismatch on host side**: Checkpoint responses and workflow runs currently route via WebRTC (`sendData`) but the host expects them via IPC (`browser:submitCheckpoint` / `browser:startWorkflow`). This causes agent deadlocks on checkpoints on the host side.
+- [x] **"Save as Workflow" button is broken**: The button in `AgentPanel.tsx` has no `onClick` handler.
+- [ ] **Duplicate event listeners leak**: `onMessage` in `BrowserPanel.tsx` is called inline during render, creating duplicate listeners on every render cycle. Wrap it in `useEffect`.
+- [ ] **Windows config path issue**: `human-checkpoint.ts` uses `~/.config/RemoteCtrl` (Linux/macOS style). Update it to use `app.getPath('userData')`.
+- [x] **Missing single-instance lock**: Two instances of the app can run simultaneously. Add `app.requestSingleInstanceLock()` in `index.ts`.
 
-## 1. Core Agent & Task Execution Enhancements
+## 🟡 Medium Priority (UX / Performance)
+- [ ] **Blocking Sync I/O**: `storage.ts` uses `readFileSync` on every getter call. Add an in-memory cache to prevent blocking the main thread on every IPC call.
+- [ ] **Non-reactive PIN display**: `BrowserPanel.tsx` uses `useConnectionStore.getState().pin` which is a snapshot. Change to a reactive `const { pin } = useConnectionStore()`.
+- [ ] **Missing Zod validation**: `ipcMain.handle('settings:setBrowserMode')` casts `mode as any` instead of using Zod schema.
+- [ ] **No API request timeout**: `settings:fetchModels` in `ipc-handlers.ts` has no timeout, which could freeze the IPC call indefinitely.
+- [ ] **Hidden stall warnings**: Stall nudge messages from `stall-detector.ts` are logged but not shown to the user in the UI.
+- [ ] **Workflow Editor**: Add drag-and-drop step reordering support for better UX.
 
-- [✅] **Manual Takeover / Agent Pause & Resume Integration**
-  - **Concept**: Treat manual takeover as a collaborative "human assist" mode rather than just an override.
-  - **Implementation**: 
-    - Modify `agent-executor.ts` and `workflow-executor.ts` to listen for a `takeover_active` event via IPC.
-    - When active, the agent's multi-step ReAct loop (Observe -> Decide -> Act) pauses immediately. 
-    - When the user releases takeover, the agent captures a fresh page fingerprint, evaluates the new state, and dynamically generates the next prompt to continue toward the overarching goal.
-
-- [✅] **True LLM Task Planning (`task-planner.ts`)**
-  - **Concept**: Move from static heuristic-based planning to dynamic LLM decomposition.
-  - **Implementation**: 
-    - Hook the `TaskPlanner.generateSubtasks()` method directly to the LLM. 
-    - Send the high-level prompt, returning a structured JSON schema of actionable subtasks (Navigation, Extraction, Interaction).
-    - Track dependencies between subtasks to ensure execution order.
-
-- [✅] **Interactive Human-in-the-Loop (`human-checkpoint.ts`)**
-  - **Concept**: The agent should proactively ask for help instead of silently failing or guessing.
-  - **Implementation**: 
-    - If `UncertaintyDetector` fires (e.g., low confidence on a captcha or login wall), pause execution and emit an `AGENT_CHECKPOINT_REQUIRED` event containing context and multiple-choice options.
-
-- [✅] **Task Self-Evaluation (`task-evaluator.ts`)**
-  - **Concept**: Prevent silent failures where the agent incorrectly marks a task as successful.
-  - **Implementation**: 
-    - After completion, invoke the `TaskEvaluator` to verify the output (e.g., "Did I actually extract 10 jobs?"). If the check fails, automatically trigger a replan to fix the gaps.
-
-## 2. UI/UX Enhancements for Agents
-
-- [✅] **Agent Pause / Manual Control Overlay**
-  - **Details**: When the user clicks "Takeover", the `Agent Status` badge should change to a pulsating amber "Agent Paused - Manual Control Active". The video stream should display a subtle border or overlay indicating the human is driving.
-
-- [ ] **Task Planner Timeline & Progress View**
-  - **Details**: For complex tasks, show a step-by-step checklist in the right sidebar. Each generated subtask should have a visual status icon (Pending ⚪, Running 🔄, Completed ✅, Failed ❌), updating in real-time.
-
-- [✅] **Interactive Chat Prompts for Checkpoints**
-  - **Details**: When the agent requires human intervention (`human-checkpoint`), it shouldn't just be text. Render a specialized chat bubble containing actionable buttons (e.g., "Option A", "Option B") or a dedicated input field for the user to steer the agent.
-
-- [ ] **Visual Action Bounding Boxes**
-  - **Details**: During the agent's "Observe" phase, use Stagehand's element detection to draw temporary, labeled bounding boxes directly over the WebRTC video stream. This allows the user to see exactly what elements the agent is considering interacting with.
-
-## 3. Chat Window & Execution Log Overhaul
-
-- [✅] **De-clutter the Chat Interface**
-  - **Concept**: The chat window should strictly be a conversational interface for high-level commands and final summaries, not a dumping ground for raw execution logs or transient errors.
-  - **Implementation Details**:
-    - **No Log Bubbles**: Remove individual chat bubbles for standard execution logs (e.g., "Clicking button", "Waiting for network").
-    - **Inline Status Text**: The active agent chat bubble should have a dynamic, inline "current action" subtext that updates in place (e.g., *Looking at the page...* ➔ *Clicking 'Login'...*).
-    - **Consolidated Summaries**: Once a task finishes, the agent sends *one* chat bubble summarizing the result (e.g., "I successfully extracted the data and saved it.").
-    
-- [✅] **Dedicated Execution Console / Drawer**
-  - **Concept**: Power users still need to see logs for debugging, but they shouldn't live in the chat.
-  - **Implementation Details**:
-    - Add a collapsible "Execution Console" or terminal-style drawer at the bottom of the UI (or in a separate tab).
-    - All raw Stagehand logs, CDP events, and stack traces get routed here.
-    - Include filters (Info, Warnings, Errors) and auto-scroll capabilities.
-
-- [✅] **Actionable Error Bubbles**
-  - **Concept**: Only critical, actionable errors should make it to the chat.
-  - **Implementation Details**:
-    - If the agent fails catastrophically and cannot auto-replan, it sends a chat bubble explaining the failure in human terms (e.g., "I couldn't get past the login screen.").
-    - Provide a "Try Again" or "Takeover" button directly inside that error chat bubble.
-
-## 4. Workflow Editor UX
-
-- [ ] **Simplify Workflow Action Types**
-  - **Concept**: Hide the "Act / Observe / Extract" technical dropdown from the end-user.
-  - **Implementation Details**:
-    - Remove the action type dropdown in the Workflow Editor UI.
-    - Default all user-created steps to "act" (as the underlying Stagehand agent can dynamically infer when to extract or observe based on natural language instructions).
+## 🟢 Low Priority / Cleanup (Tech Debt)
+- [ ] **Dead Code (Logs & Context)**: `conversation-manager.ts` and `execution-logger.ts` are fully implemented but never imported. Wire them into `agent-executor.ts` to prevent context window limits and enable debugging logs.
+- [ ] **Dead Code (Orchestration)**: `task-planner.ts`, `advanced-task-executor.ts`, and `complex-task-executor.ts` are dead paths. Consolidate them and wire them into `browser:startAgent` or remove them.
+- [ ] **Unused Error Classes**: Remove or use `BrowserNotReadyError` and `StagehandConnectionError` in `errors.ts`.
+- [ ] **API Key Security**: Keys are currently stored in plain JSON in `storage.ts`. Move them to the OS keychain using `electron.safeStorage` or `keytar`.
+- [x] **Missing Native Menu**: Add a native application menu (especially for macOS so it doesn't just say "Electron", and to enable copy/paste everywhere).
+- [ ] **Hardcoded New Tab URL**: `newTab()` in `browser-manager.ts` hardcodes `https://google.com`.
+- [ ] **LLM Provider Support**: `task-evaluator.ts` only supports OpenAI, Anthropic, and Gemini. Add support for the remaining providers.
+- [x] **Settings UI**: Open settings as an in-app modal (like `WorkflowEditorModal`) instead of a separate `BrowserWindow`.

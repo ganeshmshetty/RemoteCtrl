@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 
 import { X, Server, Cpu, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { useSettingsStore } from '../stores/useWorkflowStore';
+import { useUIStore } from '../stores/useUIStore';
 import type { ApiProvider, BrowserMode } from '../../shared/types';
 
 const MODELS_BY_PROVIDER: Record<ApiProvider, string[]> = {
@@ -151,16 +152,15 @@ export function Settings() {
   const models = Array.from(new Set([...(MODELS_BY_PROVIDER[preferredProvider] || []), ...(fetchedModels[preferredProvider] || [])]));
 
   return (
-    <div className="settings-root">
-      <div className="drag-region settings-titlebar" />
-
-      <div className="settings-header no-drag">
-        <h1 className="settings-title">Settings</h1>
-        {savedMsg && <span className="settings-saved-toast animate-fade-in">{savedMsg}</span>}
-        <button className="icon-btn" onClick={() => window.close()}>
-          <X size={16} />
-        </button>
-      </div>
+    <div className="settings-overlay" onClick={() => useUIStore.getState().closeSettings()}>
+      <div className="settings-root" onClick={(e) => e.stopPropagation()}>
+        <div className="settings-header no-drag">
+          <h1 className="settings-title">Settings</h1>
+          {savedMsg && <span className="settings-saved-toast animate-fade-in">{savedMsg}</span>}
+          <button className="icon-btn" onClick={() => useUIStore.getState().closeSettings()}>
+            <X size={16} />
+          </button>
+        </div>
 
       <div className="settings-body">
 
@@ -314,11 +314,31 @@ export function Settings() {
         </div>{/* end settings-body */}
 
         <style>{`
+          .settings-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            animation: fadeIn 0.15s ease-out;
+            backdrop-filter: blur(2px);
+          }
           .settings-root {
-            height: 100vh;
+            width: 600px;
+            max-height: 85vh;
             display: flex;
             flex-direction: column;
             background: var(--bg-base);
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            border: 1px solid var(--border);
+            overflow: hidden;
+          }
+          @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
           }
           .settings-titlebar { height: 28px; }
             .settings-header {
@@ -462,6 +482,7 @@ export function Settings() {
             .btn-danger-outline { background: transparent; color: var(--danger); border: 1px solid rgba(239,68,68,0.4); }
             .btn-danger-outline:hover { background: rgba(239,68,68,0.1); }
           `}</style>
+      </div>
     </div>
   );
 }

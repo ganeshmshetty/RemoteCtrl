@@ -56,7 +56,6 @@ contextBridge.exposeInMainWorld('RemoteCtrlAPI', {
   // ── App / Diagnostics ─────────────────────────────────────────────────────
   app: {
     getDiagnostics: () => ipcRenderer.invoke('app:getDiagnostics'),
-    openSettings: () => ipcRenderer.invoke('app:openSettings'),
   },
 
   // ── Settings ──────────────────────────────────────────────────────────────
@@ -164,6 +163,11 @@ contextBridge.exposeInMainWorld('RemoteCtrlAPI', {
       const listener = (_, payload) => cb(payload);
       ipcRenderer.on('browser:agentCheckpoint', listener);
       return () => ipcRenderer.removeListener('browser:agentCheckpoint', listener);
+    },
+    openSettings: (cb) => {
+      const listener = () => cb();
+      ipcRenderer.on('app:openSettings', listener);
+      return () => ipcRenderer.removeListener('app:openSettings', listener);
     },
   },
 });

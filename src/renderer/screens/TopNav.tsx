@@ -1,8 +1,10 @@
 import { Settings } from 'lucide-react';
 import { useConnectionStore } from '../stores/useConnectionStore';
+import { useUIStore } from '../stores/useUIStore';
 
 export function TopNav() {
   const { hostState, controllerState, pin, reset } = useConnectionStore();
+  const { openSettings } = useUIStore();
 
   const isConnected = 
     hostState === 'SESSION_ACTIVE' || 
@@ -26,7 +28,7 @@ export function TopNav() {
   }
 
   function handleOpenSettings() {
-    window.RemoteCtrlAPI?.app.openSettings();
+    openSettings();
   }
 
   return (

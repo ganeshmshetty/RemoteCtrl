@@ -4,6 +4,7 @@ import {
   shell,
   nativeTheme,
   dialog,
+  Menu,
 } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import path from 'path';
@@ -65,100 +66,156 @@ function createWindow() {
   return mainWindow;
 }
 
-let settingsWindow: BrowserWindow | null = null;
-
-export function openSettingsWindow() {
-  if (settingsWindow) {
-    settingsWindow.focus();
-    return;
-  }
-
-  settingsWindow = new BrowserWindow({
-    width: 600,
-    height: 700,
-    resizable: false,
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-    backgroundColor: '#0a0a0f',
-    show: false,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: false,
-      webSecurity: true,
-      preload: path.join(__dirname, 'preload.cjs'),
+function createMenu() {
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'Settings',
+          click: () => mainWindow?.webContents.send('app:openSettings'),
+        },
+        { type: 'separator' },
+        { role: 'quit' },
+      ],
     },
-  });
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' },
+      ],
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' },
+      ],
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'close' },
+      ],
+    },
+    {
+      label: 'Help',
+      submenu: [
+        {
+          label: 'Learn More',
+          click: async () => {
+            await shell.openExternal('https://github.com/ganeshmshetty/RemCtrl');
+          },
+        },
+      ],
+    },
+  ];
 
-  if (isDev) {
-    settingsWindow.loadURL('http://localhost:5173/#/settings');
-  } else {
-    settingsWindow.loadFile(path.join(__dirname, '../renderer/index.html'), { hash: 'settings' });
+  if (process.platform === 'darwin') {
+    template.unshift({
+      label: app.getName(),
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' },
+      ],
+    });
   }
 
-  settingsWindow.once('ready-to-show', () => {
-    settingsWindow?.show();
-  });
-
-  settingsWindow.on('closed', () => {
-    settingsWindow = null;
-  });
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
 }
 
-app.whenReady().then(() => {
-  const win = createWindow();
-  setMainWindow(win);
+const gotTheLock = app.requestSingleInstanceLock();
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      const newWin = createWindow();
-      setMainWindow(newWin);
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    // Focus existing window if user tries to open a second instance
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
     }
   });
 
-  // ── Auto Updater configuration ──
-  autoUpdater.autoDownload = false; // Prompt user before downloading
+  app.whenReady().then(() => {
+    createMenu();
+    const win = createWindow();
+    setMainWindow(win);
 
-  autoUpdater.on('update-available', async (info) => {
-    const { response } = await dialog.showMessageBox({
-      type: 'info',
-      title: 'Update Available',
-      message: `Version ${info.version} of RemoteCtrl is available.`,
-      detail: 'Would you like to download it now?',
-      buttons: ['Download', 'Skip'],
-      defaultId: 0,
-      cancelId: 1
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        const newWin = createWindow();
+        setMainWindow(newWin);
+      }
     });
 
-    if (response === 0) {
-      autoUpdater.downloadUpdate();
-    }
-  });
+    // ── Auto Updater configuration ──
+    autoUpdater.autoDownload = false; // Prompt user before downloading
 
-  autoUpdater.on('update-downloaded', async () => {
-    const { response } = await dialog.showMessageBox({
-      type: 'info',
-      title: 'Update Ready',
-      message: 'The update has been successfully downloaded.',
-      detail: 'Would you like to restart the application to apply the updates now?',
-      buttons: ['Restart', 'Later'],
-      defaultId: 0,
-      cancelId: 1
+    autoUpdater.on('update-available', async (info) => {
+      const { response } = await dialog.showMessageBox({
+        type: 'info',
+        title: 'Update Available',
+        message: `Version ${info.version} of RemoteCtrl is available.`,
+        detail: 'Would you like to download it now?',
+        buttons: ['Download', 'Skip'],
+        defaultId: 0,
+        cancelId: 1
+      });
+
+      if (response === 0) {
+        autoUpdater.downloadUpdate();
+      }
     });
 
-    if (response === 0) {
-      autoUpdater.quitAndInstall();
+    autoUpdater.on('update-downloaded', async () => {
+      const { response } = await dialog.showMessageBox({
+        type: 'info',
+        title: 'Update Ready',
+        message: 'The update has been successfully downloaded.',
+        detail: 'Would you like to restart the application to apply the updates now?',
+        buttons: ['Restart', 'Later'],
+        defaultId: 0,
+        cancelId: 1
+      });
+
+      if (response === 0) {
+        autoUpdater.quitAndInstall();
+      }
+    });
+
+    autoUpdater.on('error', (err) => {
+      console.error('AutoUpdater Error:', err);
+    });
+
+    // Check for updates (only in production)
+    if (!isDev) {
+      autoUpdater.checkForUpdates();
     }
   });
-
-  autoUpdater.on('error', (err) => {
-    console.error('AutoUpdater Error:', err);
-  });
-
-  // Check for updates (only in production)
-  if (!isDev) {
-    autoUpdater.checkForUpdates();
-  }
-});
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

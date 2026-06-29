@@ -36,7 +36,6 @@ import { runWorkflow, cancelWorkflow, isWorkflowRunning, setWorkflowPaused } fro
 import { submitCheckpointResponse } from './human-checkpoint.js';
 import { setScreencastWindow } from './screencast.js';
 import { setBrowserNotifyWindow, getTabs, switchTab, goBack, goForward, reload, navigate, closeTab, newTab } from './browser-manager.js';
-import { openSettingsWindow } from './index.js';
 import type { AgentWorkflowBatchPayload } from '../shared/types.js';
 
 let signalingClient: SignalingClient | null = null;
@@ -417,10 +416,6 @@ function registerIpcHandlers() {
       nodeVersion: process.versions.node,
       appVersion: app.getVersion(),
     };
-  });
-
-  ipcMain.handle('app:openSettings', async () => {
-    openSettingsWindow();
   });
 
   // ── WebRTC Signal Relay ───────────────────────────────────────────────────

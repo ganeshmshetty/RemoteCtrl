@@ -71,21 +71,29 @@ function WorkflowCard({ workflow, confirmingDelete, onEdit, onDelete, onConfirmD
   const { setRightPanelTab } = useUIStore();
   
   function handleRun() {
-    if (!isConnected || !sendData) return;
+    if (!isConnected) return;
     const workflowRunId = crypto.randomUUID();
     useAgentStore.getState().clearWorkflow();
-    sendData({
-      type: 'AGENT_WORKFLOW_BATCH',
-      version: '1.0',
-      timestamp: Date.now(),
-      payload: {
-        workflowRunId,
-        workflowId: workflow.id,
-        name: workflow.name,
-        startUrl: workflow.startUrl,
-        steps: workflow.steps,
-      },
-    }, true);
+    
+    const payload = {
+      workflowRunId,
+      workflowId: workflow.id,
+      name: workflow.name,
+      startUrl: workflow.startUrl,
+      steps: workflow.steps,
+    };
+
+    if (controllerState !== 'IDLE' && sendData) {
+      sendData({
+        type: 'AGENT_WORKFLOW_BATCH',
+        version: '1.0',
+        timestamp: Date.now(),
+        payload,
+      }, true);
+    } else if (hostState !== 'IDLE') {
+      window.RemoteCtrlAPI?.browser.startWorkflow(payload);
+    }
+    
     setRightPanelTab('agent');
   }
 

@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useConnectionStore } from './stores/useConnectionStore';
 import { useAgentStore } from './stores/useAgentStore';
+import { useUIStore } from './stores/useUIStore';
 import { TopNav } from './screens/TopNav';
 import { ControllerSession } from './screens/ControllerSession';
 import { Settings } from './screens/Settings';
@@ -9,14 +10,7 @@ export default function App() {
   const { setHostState, setControllerState, setPendingControllerId, setPin, setError } =
     useConnectionStore();
   const { handleAgentStatus, handleAgentLog, handleWorkflowRunStatus, handleWorkflowStepStatus, handleAgentCheckpoint } = useAgentStore();
-  const [isSettingsRoute, setIsSettingsRoute] = useState(false);
-
-  useEffect(() => {
-    setIsSettingsRoute(window.location.hash.includes('settings'));
-    const handleHashChange = () => setIsSettingsRoute(window.location.hash.includes('settings'));
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+  const { isSettingsOpen, openSettings } = useUIStore();
   // Wire Main -> Renderer push events
   useEffect(() => {
     if (!window.RemoteCtrlAPI) return; // Running in browser dev mode without Electron
@@ -32,14 +26,11 @@ export default function App() {
       window.RemoteCtrlAPI.on.workflowStepStatus((status) => handleWorkflowStepStatus(status)),
       window.RemoteCtrlAPI.on.agentCheckpoint((payload) => handleAgentCheckpoint(payload)),
       window.RemoteCtrlAPI.on.error((msg) => setError(msg)),
+      window.RemoteCtrlAPI.on.openSettings(() => openSettings()),
     ];
 
     return () => unsubs.forEach((u) => u());
   }, []);
-
-  if (isSettingsRoute) {
-    return <Settings />;
-  }
 
   return (
     <div className="app-shell">
@@ -47,6 +38,7 @@ export default function App() {
       <div className="main-content">
         <ControllerSession />
       </div>
+      {isSettingsOpen && <Settings />}
     </div>
   );
 }

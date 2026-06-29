@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Send, Bot, Zap, StopCircle, Hand, MousePointer, Save, Loader2 } from 'lucide-react';
 import { useAgentStore } from '../stores/useAgentStore';
 import { useConnectionStore } from '../stores/useConnectionStore';
+import { useUIStore } from '../stores/useUIStore';
 import type { ChatMessage } from '../stores/useAgentStore';
 import type { AgentCheckpointPayload } from '../../shared/types';
 
@@ -41,33 +42,41 @@ export function AgentPanel() {
       timestamp: Date.now(),
     });
 
-    if (sendData) {
+    const payload = { commandId, action: 'act' as const, instruction: text };
+
+    if (controllerState !== 'IDLE' && sendData) {
       sendData({
         type: 'AGENT_PROMPT',
         version: '1.0',
         timestamp: Date.now(),
         id: commandId,
-        payload: { commandId, action: 'act', instruction: text },
+        payload,
       }, true);
+    } else if (hostState !== 'IDLE') {
+      window.RemoteCtrlAPI?.browser.startAgent(payload);
     }
 
     setPrompt('');
   }
 
   function handleCancelAgent() {
-    if (sendData) {
+    if (controllerState !== 'IDLE' && sendData) {
       sendData({ type: 'AGENT_PROMPT', version: '1.0', timestamp: Date.now(), payload: { commandId: '__cancel__', action: 'act', instruction: '' } }, true);
+    } else if (hostState !== 'IDLE') {
+      window.RemoteCtrlAPI?.browser.cancelAgent();
     }
   }
 
   function handleCheckpointResponse(checkpointId: string, selectedOptionId: string) {
-    if (sendData) {
+    if (controllerState !== 'IDLE' && sendData) {
       sendData({
         type: 'AGENT_CHECKPOINT_RESPONSE',
         version: '1.0',
         timestamp: Date.now(),
         payload: { checkpointId, response: { selectedOptionId } },
       }, true);
+    } else if (hostState !== 'IDLE') {
+      window.RemoteCtrlAPI?.browser.submitCheckpoint(checkpointId, { selectedOptionId });
     }
   }
 
@@ -121,7 +130,7 @@ export function AgentPanel() {
         )}
         
         {chatHistory.length > 0 && chatHistory[chatHistory.length - 1].type === 'status' && (
-          <button className="btn btn-ghost agent-save-workflow-btn">
+          <button className="btn btn-ghost agent-save-workflow-btn" onClick={() => useUIStore.getState().openWorkflowEditor()}>
             <Save size={14} style={{ marginRight: 4 }} /> Save as Workflow
           </button>
         )}
