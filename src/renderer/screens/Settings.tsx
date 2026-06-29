@@ -5,15 +5,6 @@ import { useSettingsStore } from '../stores/useWorkflowStore';
 import { useUIStore } from '../stores/useUIStore';
 import type { ApiProvider, BrowserMode } from '../../shared/types';
 
-const MODELS_BY_PROVIDER: Record<ApiProvider, string[]> = {
-  openai: ['gpt-4o', 'gpt-4o-mini', 'o1-mini'],
-  anthropic: ['claude-3-5-sonnet-latest', 'claude-3-haiku-20240307'],
-  gemini: ['gemini-1.5-pro', 'gemini-2.0-flash-exp'],
-  groq: ['llama-3.3-70b-versatile', 'mixtral-8x7b-32768'],
-  deepseek: ['deepseek-chat', 'deepseek-reasoner'],
-  nebius: ['meta-llama/Llama-3.3-70B-Instruct', 'mistralai/Mixtral-8x22B-Instruct-v0.1'],
-  openrouter: ['anthropic/claude-3.5-sonnet', 'openai/o1-mini', 'google/gemini-pro-1.5', 'meta-llama/llama-3.3-70b-instruct']
-};
 
 export function Settings() {
   const {
@@ -41,7 +32,8 @@ export function Settings() {
   const [showKey, setShowKey] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
 
-  const [fetchedModels, setFetchedModels] = useState<Record<string, string[]>>({});
+  const [cachedModels, setCachedModels] = useState<Record<string, string[]>>({});
+  const [hasFetchedApi, setHasFetchedApi] = useState<Record<string, boolean>>({});
   const [isCustomModel, setIsCustomModel] = useState(false);
   const [customModelInput, setCustomModelInput] = useState('');
 
@@ -77,9 +69,9 @@ export function Settings() {
     await setPreferredProvider(p);
     setApiInput(''); // clear input when switching
     setIsCustomModel(false);
-    // Set default model for the new provider
-    const available = Array.from(new Set([...(MODELS_BY_PROVIDER[p] || []), ...(fetchedModels[p] || [])]));
-    if (available.length > 0) {
+    // Auto-select first available model for the new provider
+    const available = cachedModels[p];
+    if (available && available.length > 0) {
       await setPreferredModel(available[0]);
     }
   }
@@ -102,26 +94,43 @@ export function Settings() {
     }
   }
 
+  // 1. Initial Load: Get locally cached/default models from main process
+  useEffect(() => {
+    async function loadModels() {
+      const ms = await window.RemoteCtrlAPI?.settings.getAvailableModels(preferredProvider);
+      if (ms && ms.length > 0) {
+        setCachedModels(prev => ({ ...prev, [preferredProvider]: ms }));
+        // Ensure a preferred model is selected if missing
+        const currentModel = useSettingsStore.getState().preferredModel;
+        if (!currentModel) {
+          await setPreferredModel(ms[0]);
+        }
+      }
+    }
+    loadModels();
+  }, [preferredProvider]);
+
+  // 2. Auto-fetch fresh models from API in the background if eligible
+  useEffect(() => {
+    if (['openai', 'groq', 'deepseek', 'nebius', 'openrouter'].includes(preferredProvider)) {
+      const hasKey = hasKeyForProvider(preferredProvider);
+      if ((hasKey || preferredProvider === 'openrouter') && !hasFetchedApi[preferredProvider]) {
+        fetchModelsSilently(preferredProvider);
+      }
+    }
+  }, [preferredProvider, hasOpenAIKey, hasGroqKey, hasDeepseekKey, hasNebiusKey, hasOpenRouterKey, hasFetchedApi]);
+
   async function fetchModelsSilently(provider: ApiProvider) {
+    setHasFetchedApi(prev => ({ ...prev, [provider]: true }));
     try {
       const ms = await window.RemoteCtrlAPI?.settings.fetchModels(provider);
       if (ms && ms.length > 0) {
-        setFetchedModels(prev => ({ ...prev, [provider]: ms }));
+        setCachedModels(prev => ({ ...prev, [provider]: ms }));
       }
     } catch (e) {
       // ignore
     }
   }
-
-  // Auto-fetch models for the active provider
-  useEffect(() => {
-    if (['openai', 'groq', 'deepseek', 'nebius', 'openrouter'].includes(preferredProvider)) {
-      const hasKey = hasKeyForProvider(preferredProvider);
-      if ((hasKey || preferredProvider === 'openrouter') && !fetchedModels[preferredProvider]) {
-        fetchModelsSilently(preferredProvider);
-      }
-    }
-  }, [preferredProvider, hasOpenAIKey, hasGroqKey, hasDeepseekKey, hasNebiusKey, hasOpenRouterKey, fetchedModels]);
 
   async function handleSaveSignaling() {
     try {
@@ -149,7 +158,7 @@ export function Settings() {
   }
 
   const hasCurrentKey = hasKeyForProvider(preferredProvider);
-  const models = Array.from(new Set([...(MODELS_BY_PROVIDER[preferredProvider] || []), ...(fetchedModels[preferredProvider] || [])]));
+  const models = cachedModels[preferredProvider] || [];
 
   return (
     <div className="settings-overlay" onClick={() => useUIStore.getState().closeSettings()}>

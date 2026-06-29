@@ -4,12 +4,16 @@ import { app } from 'electron';
 import { LocalWorkflow, ApiProvider, BrowserMode } from '../shared/types.js';
 import { PersistedSettingsSchema, PersistedSettings, LocalWorkflowSchema } from '../shared/schemas.js';
 
+import { fileURLToPath } from 'url';
+import { DEFAULT_MODELS } from '../shared/default-models.js';
+
 // ─── Paths ─────────────────────────────────────────────────────────────────────
 
 const USER_DATA = app.getPath('userData');
 const SETTINGS_FILE = path.join(USER_DATA, 'settings.json');
 const WORKFLOWS_FILE = path.join(USER_DATA, 'workflows.json');
 const API_KEYS_FILE = path.join(USER_DATA, 'api-keys.json');
+const MODELS_FILE = path.join(USER_DATA, 'models.json');
 
 function ensureDir(filePath: string) {
   const dir = path.dirname(filePath);
@@ -90,6 +94,50 @@ export function getHeadlessMode(): boolean {
 export function setHeadlessMode(headless: boolean) {
   const s = loadSettings();
   saveSettings({ ...s, headlessMode: headless });
+}
+
+// ─── Models Storage ─────────────────────────────────────────────────────────
+
+export function getModelsList(provider: ApiProvider): string[] {
+  // 1. Try local cache
+  const localCache = readJson<Record<string, string[]>>(MODELS_FILE, {});
+  if (localCache[provider] && localCache[provider].length > 0) {
+    return localCache[provider];
+  }
+
+  // 2. Fallback to bundled defaults
+  return DEFAULT_MODELS[provider] || [];
+}
+
+export function saveModelsList(provider: ApiProvider, models: string[]) {
+  // 1. Update local cache
+  const localCache = readJson<Record<string, string[]>>(MODELS_FILE, {});
+  localCache[provider] = models;
+  writeJson(MODELS_FILE, localCache);
+
+  // 2. Dev mode: Write back to src/shared/default-models.ts
+  if (!app.isPackaged) {
+    try {
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+      // __dirname is dist/main, so src is ../../src
+      const tsPath = path.join(__dirname, '../../src/shared/default-models.ts');
+      
+      if (fs.existsSync(tsPath)) {
+        const content = fs.readFileSync(tsPath, 'utf-8');
+        const jsonMatch = content.match(/export const DEFAULT_MODELS: Record<ApiProvider, string\[\]> = (\{[\s\S]*?\});/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[1]);
+          parsed[provider] = models;
+          const newJson = JSON.stringify(parsed, null, 2);
+          const newContent = content.replace(jsonMatch[1], newJson);
+          fs.writeFileSync(tsPath, newContent, 'utf-8');
+        }
+      }
+    } catch (e) {
+      console.error('Failed to auto-update default-models.ts', e);
+    }
+  }
 }
 
 // ─── API Key Storage (separate file, not settings.json) ───────────────────────

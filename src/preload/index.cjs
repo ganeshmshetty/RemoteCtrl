@@ -71,6 +71,7 @@ contextBridge.exposeInMainWorld('RemoteCtrlAPI', {
     getPreferredModel: () => ipcRenderer.invoke('settings:getPreferredModel'),
     setPreferredModel: (model) => ipcRenderer.invoke('settings:setPreferredModel', model),
     fetchModels: (provider) => ipcRenderer.invoke('settings:fetchModels', provider),
+    getAvailableModels: (provider) => ipcRenderer.invoke('settings:getAvailableModels', provider),
     getBrowserMode: () => ipcRenderer.invoke('settings:getBrowserMode'),
     setBrowserMode: (mode) => ipcRenderer.invoke('settings:setBrowserMode', mode),
     getHeadlessMode: () => ipcRenderer.invoke('settings:getHeadlessMode'),

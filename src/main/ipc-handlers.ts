@@ -28,6 +28,8 @@ import {
   getApiKey,
   getHeadlessMode,
   setHeadlessMode,
+  getModelsList,
+  saveModelsList,
 } from './storage.js';
 import { SignalingClient } from './signaling-client.js';
 import { launchBrowser, closeBrowser, getCaptureMetadata, injectMouse, injectKeyboard, resetProfile } from './browser-manager.js';
@@ -144,13 +146,32 @@ function registerIpcHandlers() {
       if (!res.ok) return [];
       const data = await res.json() as any;
       if (data && data.data && Array.isArray(data.data)) {
-        return data.data.map((m: any) => m.id).filter(Boolean);
+        // For OpenRouter, filter to only chat/text models (exclude embedding, image, moderation)
+        const skipSuffixes = ['embed', 'embedding', 'moderation', 'image', 'vision', 'whisper', 'tts', 'dall-e'];
+        const models = data.data
+          .map((m: any) => m.id as string)
+          .filter(Boolean)
+          .filter((id: string) => {
+            const lower = id.toLowerCase();
+            return !skipSuffixes.some(suffix => lower.includes(suffix));
+          });
+        if (models.length > 0) {
+          saveModelsList(provider as any, models);
+        }
+        return models;
       }
       return [];
     } catch (e) {
       console.error('Failed to fetch models', e);
       return [];
     }
+  });
+
+  ipcMain.handle('settings:getAvailableModels', async (_e, provider: unknown) => {
+    if (typeof provider === 'string') {
+      return getModelsList(provider as any);
+    }
+    return [];
   });
 
   ipcMain.handle('settings:getBrowserMode', async () => getBrowserMode());
