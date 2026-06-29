@@ -59,7 +59,8 @@ export function BrowserPanel() {
     }
   }, []);
   const sendData = isHost ? hostSendData : ctrlRTC.sendData;
-  const onMessage = isHost ? () => {} : ctrlRTC.onMessage;
+  const noop = useCallback(() => {}, []);
+  const onMessage = isHost ? noop : ctrlRTC.onMessage;
   const rtcStatus = isHost ? hostRTC.status : ctrlRTC.status;
 
   const lastMoveTimeRef = useRef<number>(0);
@@ -84,22 +85,24 @@ export function BrowserPanel() {
     }
   }, [isHost]);
 
-  onMessage((msg) => {
-    const store = useAgentStore.getState();
-    if (msg.type === 'AGENT_STATUS_UPDATE') {
-      store.handleAgentStatus(msg.payload as AgentStatusPayload);
-    } else if (msg.type === 'AGENT_LOG') {
-      store.handleAgentLog(msg.payload as AgentLogPayload);
-    } else if (msg.type === 'WORKFLOW_RUN_STATUS') {
-      store.handleWorkflowRunStatus(msg.payload as WorkflowRunStatus);
-    } else if (msg.type === 'WORKFLOW_STEP_STATUS') {
-      store.handleWorkflowStepStatus(msg.payload as WorkflowStepStatus);
-    } else if (msg.type === 'AGENT_CHECKPOINT') {
-      store.handleAgentCheckpoint(msg.payload as AgentCheckpointPayload);
-    } else if (msg.type === 'TAB_LIST') {
-      setTabs(msg.payload as TabInfo[]);
-    }
-  });
+  useEffect(() => {
+    onMessage((msg) => {
+      const store = useAgentStore.getState();
+      if (msg.type === 'AGENT_STATUS_UPDATE') {
+        store.handleAgentStatus(msg.payload as AgentStatusPayload);
+      } else if (msg.type === 'AGENT_LOG') {
+        store.handleAgentLog(msg.payload as AgentLogPayload);
+      } else if (msg.type === 'WORKFLOW_RUN_STATUS') {
+        store.handleWorkflowRunStatus(msg.payload as WorkflowRunStatus);
+      } else if (msg.type === 'WORKFLOW_STEP_STATUS') {
+        store.handleWorkflowStepStatus(msg.payload as WorkflowStepStatus);
+      } else if (msg.type === 'AGENT_CHECKPOINT') {
+        store.handleAgentCheckpoint(msg.payload as AgentCheckpointPayload);
+      } else if (msg.type === 'TAB_LIST') {
+        setTabs(msg.payload as TabInfo[]);
+      }
+    });
+  }, [onMessage]);
 
   function handleBrowserAction(action: 'goBack' | 'goForward' | 'reload' | 'navigate' | 'closeTab' | 'newTab', tabId?: string) {
     sendData({

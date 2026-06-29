@@ -479,9 +479,9 @@ export function useControllerWebRTC(_isSessionActive: boolean) {
     }
   }, []);
 
-  const onMessage = (cb: (msg: DataChannelMessage) => void) => {
+  const onMessage = useCallback((cb: (msg: DataChannelMessage) => void) => {
     onMessageRef.current = cb;
-  };
+  }, []);
 
   return { videoRef, status, error, sendData, onMessage };
 }
