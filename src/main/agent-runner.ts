@@ -17,7 +17,7 @@ import { Stagehand } from '@browserbasehq/stagehand';
 import { getPage, getCdpUrl } from './browser-manager.js';
 import { parseInstruction } from './instruction-parser.js';
 import { getPreferredModel } from './storage.js';
-import { TaskPlanner } from './task-planner.js';
+import { DynamicPlanner } from './task-planner.js';
 import { TaskEvaluator } from './task-evaluator.js';
 import { StrategyGenerator } from './strategy-generator.js';
 import { ExecutionLogger } from './execution-logger.js';
@@ -186,20 +186,13 @@ export async function runAgent(
   const executionLogger = new ExecutionLogger(commandId, instruction);
   const taskEvaluator   = new TaskEvaluator({ strictMode: false, minConfidence: 0.6 });
   const strategyGen     = new StrategyGenerator();
-  const planner         = new TaskPlanner();
+  const dynamicPlanner  = new DynamicPlanner();
 
   let localStagehand: Stagehand | null = null;
   let timeoutId: NodeJS.Timeout | undefined;
   let cancelIntervalId: NodeJS.Timeout | undefined;
 
   try {
-    // ── Step 2: Plan creation ────────────────────────────────────────────────
-
-    emitLog(onLog, 'info', 'Creating task plan...', '[AgentRunner]');
-    const plan = await planner.createPlan(instruction);
-    const subtasks = plan.subtasks;
-    emitLog(onLog, 'info', `Plan created: ${subtasks.length} subtask(s)`, '[AgentRunner]');
-
     // ── Connect Stagehand ────────────────────────────────────────────────────
 
     emitLog(onLog, 'info', `Connecting to local browser via CDP: ${cdpUrl}`, '[AgentRunner]');
@@ -237,30 +230,50 @@ export async function runAgent(
       }, 200);
     });
 
-    // ── Step 3: Execute subtasks ─────────────────────────────────────────────
+    // ── Step 3: Execute via Dynamic Goal Refinement ──────────────────────────
 
     const runPipeline = async () => {
       const stallDetector = new StallDetector();
+      const scratchpad: string[] = [];
+      let goalAchieved = false;
+      let stepCount = 0;
+      const MAX_STEPS = 25;
 
       // Record initial page fingerprint
       const initFp = await createPageFingerprint(page);
       stallDetector.recordFingerprint(initFp);
 
-      for (let i = 0; i < subtasks.length; i++) {
-        const subtask = subtasks[i];
-
+      while (!goalAchieved && stepCount < MAX_STEPS) {
         if (cancelRequested) break;
         if (isPaused) await waitForResume(onLog);
         if (cancelRequested) break;
 
-        // ── 3a. Log start ────────────────────────────────────────────────────
-        emitLog(onLog, 'info', `[${i + 1}/${subtasks.length}] Starting: ${subtask.goal}`, '[AgentRunner]');
-        planner.updateSubtaskStatus(plan, subtask.id, 'in_progress');
+        stepCount++;
 
-        // ── Execute subtask (with optional one retry on evaluation failure) ──
+        // ── 3a. Get next step from DynamicPlanner ────────────────────────────
+        emitLog(onLog, 'info', `[Step ${stepCount}] Asking Dynamic Planner for next move...`, '[AgentRunner]');
+        
+        const pageState = {
+          url: page.url(),
+          title: await page.title().catch(() => ''),
+          elementCount: await page.locator('button, input, select, a, [role="button"]').count().catch(() => 0),
+        };
+
+        const nextStep = await dynamicPlanner.getNextStep(instruction, scratchpad, pageState);
+
+        if (nextStep.is_goal_achieved) {
+          emitLog(onLog, 'info', `[Step ${stepCount}] Planner reports goal achieved! Thought: ${nextStep.thought}`, '[AgentRunner]');
+          goalAchieved = true;
+          break;
+        }
+
+        emitLog(onLog, 'info', `[Step ${stepCount}] Thought: ${nextStep.thought}`, '[AgentRunner]');
+        emitLog(onLog, 'info', `[Step ${stepCount}] Action: ${nextStep.action} "${nextStep.instruction}"`, '[AgentRunner]');
+
+        // ── Execute step (with optional one retry on evaluation failure) ──
         let subtaskResult: any = null;
         let subtaskError: string | undefined;
-        let finalInstruction = subtask.goal;
+        let finalInstruction = nextStep.instruction;
 
         for (let attempt = 0; attempt <= 1; attempt++) {
           try {
@@ -284,20 +297,14 @@ export async function runAgent(
               : finalInstruction;
 
             // ── 3e. Execute action ───────────────────────────────────────────
-            const pageState = {
-              url: page.url(),
-              title: await page.title().catch(() => ''),
-              elementCount: 0,
-            };
-
             subtaskResult = await executionLogger.logWithTiming(
-              i + 1,
-              subtask.action,
+              stepCount,
+              nextStep.action,
               remainingAction,
               async () => {
-                if (subtask.action === 'extract') {
+                if (nextStep.action === 'extract') {
                   return await localStagehand!.extract(remainingAction, { page });
-                } else if (subtask.action === 'observe') {
+                } else if (nextStep.action === 'observe') {
                   return await localStagehand!.observe(remainingAction, { page });
                 } else {
                   return await localStagehand!.act(remainingAction, { page });
@@ -309,26 +316,28 @@ export async function runAgent(
             subtaskError = undefined;
 
             // ── 3f. Stall detection ──────────────────────────────────────────
-            stallDetector.recordAction(subtask.action, finalInstruction);
+            stallDetector.recordAction(nextStep.action, finalInstruction);
             const currentFp = await createPageFingerprint(page);
             stallDetector.recordFingerprint(currentFp);
             const stallCheck = stallDetector.isStuck();
             if (stallCheck.stuck) {
               const nudge = stallDetector.getLoopNudgeMessage();
               emitLog(onLog, 'warn', `Stall detected: ${stallCheck.reason}`, '[AgentRunner]');
-              if (nudge) emitLog(onLog, 'info', `Recovery nudge:\n${nudge}`, '[AgentRunner]');
-              // Don't throw — just log and continue; let recovery handle it
+              if (nudge) {
+                emitLog(onLog, 'info', `Recovery nudge:\n${nudge}`, '[AgentRunner]');
+                scratchpad.push(`STALL WARNING: ${stallCheck.reason}. Nudge: ${nudge}`);
+              }
             }
 
             // ── 3g. Evaluate (extract steps only) ────────────────────────────
-            if (subtask.action === 'extract') {
-              emitLog(onLog, 'info', `Evaluating extract result for subtask ${subtask.id}...`, '[AgentRunner]');
+            if (nextStep.action === 'extract') {
+              emitLog(onLog, 'info', `Evaluating extract result for step ${stepCount}...`, '[AgentRunner]');
               let evaluation;
               try {
                 evaluation = await taskEvaluator.evaluate(
-                  subtask.goal,
+                  nextStep.instruction,
                   subtaskResult,
-                  { stepsExecuted: i + 1, errors: [], collectedData: {} },
+                  { stepsExecuted: stepCount, errors: [], collectedData: {} },
                 );
               } catch (evalErr) {
                 emitLog(onLog, 'warn', `Evaluation failed: ${evalErr instanceof Error ? evalErr.message : String(evalErr)}`, '[AgentRunner]');
@@ -345,11 +354,11 @@ export async function runAgent(
               // ── 3h. Recovery if evaluation failed ───────────────────────────
               if (!evaluation.success && attempt === 0) {
                 const strategyContext = {
-                  task: subtask.goal,
+                  task: nextStep.instruction,
                   currentApproach: finalInstruction,
                   failureReason: evaluation.missingElements.join('; ') || 'low confidence',
-                  stepsAttempted: i + 1,
-                  stepsRemaining: subtasks.length - (i + 1),
+                  stepsAttempted: stepCount,
+                  stepsRemaining: MAX_STEPS - stepCount,
                   pageState: {
                     url: page.url(),
                     title: await page.title().catch(() => ''),
@@ -360,8 +369,8 @@ export async function runAgent(
                 emitLog(onLog, 'info', `Recovery suggestion: ${suggestion.recommendation}`, '[AgentRunner]');
 
                 // Prepend recommendation to the instruction and retry
-                finalInstruction = `${suggestion.recommendation}\n\nOriginal task: ${subtask.goal}`;
-                emitLog(onLog, 'info', `Retrying subtask with adjusted instruction...`, '[AgentRunner]');
+                finalInstruction = `${suggestion.recommendation}\n\nOriginal task: ${nextStep.instruction}`;
+                emitLog(onLog, 'info', `Retrying step with adjusted instruction...`, '[AgentRunner]');
                 continue; // retry loop
               }
             }
@@ -371,9 +380,9 @@ export async function runAgent(
           } catch (err) {
             const errInfo = extractError(err);
             subtaskError = errInfo.message;
-            emitLog(onLog, 'warn', `Subtask ${subtask.id} attempt ${attempt + 1} failed: ${subtaskError}`, '[AgentRunner]');
+            emitLog(onLog, 'warn', `Step ${stepCount} attempt ${attempt + 1} failed: ${subtaskError}`, '[AgentRunner]');
             if (attempt === 0 && errInfo.retryable) {
-              emitLog(onLog, 'info', 'Retrying subtask once...', '[AgentRunner]');
+              emitLog(onLog, 'info', 'Retrying step once...', '[AgentRunner]');
               await sleep(1000);
               continue;
             }
@@ -381,22 +390,27 @@ export async function runAgent(
           }
         } // end retry loop
 
-        // ── 3i. Update subtask status ────────────────────────────────────────
+        // ── 3i. Update Scratchpad ────────────────────────────────────────────
         if (subtaskError) {
-          planner.updateSubtaskStatus(plan, subtask.id, 'failed', undefined, subtaskError);
-          emitLog(onLog, 'warn', `Subtask ${subtask.id} failed: ${subtaskError}`, '[AgentRunner]');
+          scratchpad.push(`Failed to execute: [${nextStep.action}] "${nextStep.instruction}". Error: ${subtaskError}`);
         } else {
-          planner.updateSubtaskStatus(plan, subtask.id, 'completed', subtaskResult);
-          emitLog(onLog, 'info', `Subtask ${subtask.id} completed.`, '[AgentRunner]');
+          scratchpad.push(`Successfully executed: [${nextStep.action}] "${nextStep.instruction}"`);
+          if (nextStep.action === 'extract') {
+            scratchpad.push(`Extracted data snippet: ${JSON.stringify(subtaskResult).slice(0, 150)}...`);
+          }
         }
 
         // ── 3j. Emit progress ────────────────────────────────────────────────
         onStatus({
           commandId,
           state: 'running',
-          result: { step: i + 1, total: subtasks.length },
+          result: { step: stepCount, latestAction: nextStep.instruction },
         });
       } // end subtask loop
+
+      if (!goalAchieved && stepCount >= MAX_STEPS) {
+        throw new Error('Maximum steps reached without achieving goal.');
+      }
     };
 
     await Promise.race([runPipeline(), timeoutPromise, cancelPromise]);

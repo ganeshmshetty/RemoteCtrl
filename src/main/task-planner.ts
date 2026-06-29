@@ -53,7 +53,7 @@ export interface PlanningOptions {
   model?: string;
 }
 
-// ─── System Prompt for Planning ──────────────────────────────────────────────
+// ─── System Prompts ────────────────────────────────────────────────────────
 
 const PLANNING_SYSTEM_PROMPT = `You are a task planning expert. Your job is to break down complex tasks into clear, actionable subtasks.
 
@@ -82,7 +82,20 @@ Subtasks:
 
 Respond with the required JSON structure.`;
 
-// ─── Task Planner Class ─────────────────────────────────────────────────────
+const DYNAMIC_PLANNER_PROMPT = `You are an autonomous web agent executing a task. 
+You are using Dynamic Goal Refinement. You do not plan the whole task in advance.
+Instead, you look at the Global Goal, your past actions (Scratchpad), and the Current Page State.
+Then, you decide ONLY the very next logical step to take.
+
+Available actions:
+- act: Interact with the page (click, type, etc) or navigate to a URL.
+- observe: Look at the page elements without interacting.
+- extract: Extract structured data from the page.
+
+If the Global Goal is fully achieved, set is_goal_achieved to true. Otherwise, set it to false and provide the next step.
+Respond with a JSON object.`;
+
+// ─── Task Planner Class (Static) ────────────────────────────────────────────
 
 export class TaskPlanner {
   private conversationManager: ConversationManager;
@@ -246,4 +259,83 @@ export class TaskPlanner {
  */
 export function generatePlanId(): string {
   return `plan_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+}
+
+// ─── Dynamic Planner Class ──────────────────────────────────────────────────
+
+export interface DynamicStep {
+  thought: string;
+  action: 'act' | 'observe' | 'extract';
+  instruction: string;
+  is_goal_achieved: boolean;
+}
+
+export class DynamicPlanner {
+  private conversationManager: ConversationManager;
+
+  constructor() {
+    this.conversationManager = new ConversationManager({
+      systemPrompt: DYNAMIC_PLANNER_PROMPT,
+    });
+  }
+
+  /**
+   * Determine the next logical step based on current state and history.
+   */
+  async getNextStep(
+    globalGoal: string,
+    scratchpad: string[],
+    currentPageState: { url: string; title: string; elementCount: number }
+  ): Promise<DynamicStep> {
+    const provider = getPreferredProvider();
+    const apiKey = getApiKey(provider);
+
+    if (!apiKey) {
+      throw new Error(`No API key found for provider: ${provider}`);
+    }
+
+    let model;
+    if (provider === 'openai') {
+      const openai = createOpenAI({ apiKey });
+      model = openai('gpt-4o');
+    } else if (provider === 'anthropic') {
+      const anthropic = createAnthropic({ apiKey });
+      model = anthropic('claude-3-5-sonnet-latest');
+    } else {
+      const google = createGoogleGenerativeAI({ apiKey });
+      model = google('gemini-2.5-flash');
+    }
+
+    const StepSchema = z.object({
+      thought: z.string().describe('Your reasoning for what to do next based on the goal, history, and current page.'),
+      action: z.enum(['act', 'observe', 'extract']),
+      instruction: z.string().describe('The plain English instruction for the action (e.g. "click the login button"). Leave empty if goal is achieved.'),
+      is_goal_achieved: z.boolean().describe('True if the global goal has been fully satisfied.'),
+    });
+
+    const prompt = `
+Global Goal: "${globalGoal}"
+
+Scratchpad (Past Actions):
+${scratchpad.length > 0 ? scratchpad.map((s, i) => `${i + 1}. ${s}`).join('\n') : 'No actions taken yet.'}
+
+Current Page State:
+URL: ${currentPageState.url}
+Title: ${currentPageState.title}
+Elements: ${currentPageState.elementCount}
+
+What is the very next logical step?`;
+
+    this.conversationManager.clear();
+    this.conversationManager.addMessage('user', prompt);
+
+    const { object } = await generateObject({
+      model,
+      schema: StepSchema,
+      system: DYNAMIC_PLANNER_PROMPT,
+      prompt,
+    });
+
+    return object;
+  }
 }
