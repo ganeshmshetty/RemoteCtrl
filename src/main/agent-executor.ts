@@ -467,25 +467,32 @@ function handleError(
 
 function getModelName(provider: string): string {
   const preferred = getPreferredModel();
-  if (preferred) return preferred;
+
+  const ensurePrefix = (model: string, prov: string) => {
+    if (model.includes('/')) return model;
+    if (prov === 'gemini') return `google/${model}`;
+    return `${prov}/${model}`;
+  };
+
+  if (preferred) return ensurePrefix(preferred, provider);
 
   switch (provider) {
     case 'openai':
-      return 'gpt-4o';
+      return 'openai/gpt-4o';
     case 'anthropic':
-      return 'claude-3-5-sonnet-latest';
+      return 'anthropic/claude-3-5-sonnet-latest';
     case 'gemini':
-      return 'gemini-1.5-pro';
+      return 'google/gemini-1.5-pro';
     case 'groq':
-      return 'llama-3.3-70b-versatile';
+      return 'groq/llama-3.3-70b-versatile';
     case 'deepseek':
-      return 'deepseek-chat';
+      return 'deepseek/deepseek-chat';
     case 'nebius':
-      return 'meta-llama/Llama-3.3-70B-Instruct';
+      return 'nebius/meta-llama/Llama-3.3-70B-Instruct';
     case 'openrouter':
-      return 'anthropic/claude-3.5-sonnet';
+      return 'openrouter/anthropic/claude-3.5-sonnet';
     default:
-      return 'gpt-4o';
+      return 'openai/gpt-4o';
   }
 }
 
