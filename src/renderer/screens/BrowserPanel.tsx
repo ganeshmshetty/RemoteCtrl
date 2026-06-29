@@ -267,7 +267,7 @@ export function BrowserPanel() {
               <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <div style={{ fontSize: '18px', fontWeight: 600 }}>Waiting for Controller</div>
                 <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '8px' }}>Share this PIN to allow remote control:</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', margin: '24px 0' }}>
+                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', margin: '24px 0' }}>
                   <div style={{ 
                     fontSize: '48px', 
                     fontFamily: 'var(--font-mono)', 
@@ -288,15 +288,17 @@ export function BrowserPanel() {
                     className="icon-btn" 
                     onClick={handleCopyPin}
                     style={{ 
-                      width: '40px', 
-                      height: '40px', 
+                      position: 'absolute',
+                      left: 'calc(100% + 12px)',
+                      width: '36px', 
+                      height: '36px', 
                       border: '1px solid var(--border)',
                       opacity: pin ? 1 : 0.5,
                       pointerEvents: pin ? 'auto' : 'none'
                     }}
                     title="Copy PIN"
                   >
-                    {hasCopiedPin ? <Check size={20} color="var(--success)" /> : <Copy size={20} />}
+                    {hasCopiedPin ? <Check size={18} color="var(--success)" /> : <Copy size={18} />}
                   </button>
                 </div>
                 <button className="btn btn-ghost" onClick={handleStopHosting} style={{ color: 'var(--danger)' }}>
