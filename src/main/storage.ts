@@ -39,15 +39,22 @@ function writeJson(filePath: string, data: unknown) {
 
 // ─── Settings Storage ─────────────────────────────────────────────────────────
 
+let _settingsCache: PersistedSettings | null = null;
+
 export function loadSettings(): PersistedSettings {
+  if (_settingsCache) return _settingsCache;
   const raw = readJson(SETTINGS_FILE, {});
   const result = PersistedSettingsSchema.safeParse(raw);
-  if (result.success) return result.data;
-  // Return defaults if parse fails
-  return PersistedSettingsSchema.parse({});
+  if (result.success) {
+    _settingsCache = result.data;
+  } else {
+    _settingsCache = PersistedSettingsSchema.parse({});
+  }
+  return _settingsCache;
 }
 
 export function saveSettings(settings: PersistedSettings) {
+  _settingsCache = settings;
   writeJson(SETTINGS_FILE, settings);
 }
 
@@ -98,9 +105,14 @@ export function setHeadlessMode(headless: boolean) {
 
 // ─── Models Storage ─────────────────────────────────────────────────────────
 
+let _modelsCache: Record<string, string[]> | null = null;
+
 export function getModelsList(provider: ApiProvider): string[] {
   // 1. Try local cache
-  const localCache = readJson<Record<string, string[]>>(MODELS_FILE, {});
+  if (!_modelsCache) {
+    _modelsCache = readJson<Record<string, string[]>>(MODELS_FILE, {});
+  }
+  const localCache = _modelsCache;
   if (localCache[provider] && localCache[provider].length > 0) {
     return localCache[provider];
   }
@@ -111,9 +123,11 @@ export function getModelsList(provider: ApiProvider): string[] {
 
 export function saveModelsList(provider: ApiProvider, models: string[]) {
   // 1. Update local cache
-  const localCache = readJson<Record<string, string[]>>(MODELS_FILE, {});
-  localCache[provider] = models;
-  writeJson(MODELS_FILE, localCache);
+  if (!_modelsCache) {
+    _modelsCache = readJson<Record<string, string[]>>(MODELS_FILE, {});
+  }
+  _modelsCache[provider] = models;
+  writeJson(MODELS_FILE, _modelsCache);
 
   // 2. Dev mode: Write back to src/shared/default-models.ts
   if (!app.isPackaged) {
@@ -147,19 +161,28 @@ interface ApiKeyStore {
   [provider: string]: string;
 }
 
+let _apiKeysCache: ApiKeyStore | null = null;
+
+function loadApiKeys(): ApiKeyStore {
+  if (!_apiKeysCache) {
+    _apiKeysCache = readJson<ApiKeyStore>(API_KEYS_FILE, {});
+  }
+  return _apiKeysCache;
+}
+
 export function hasApiKey(provider: ApiProvider): boolean {
-  const store = readJson<ApiKeyStore>(API_KEYS_FILE, {});
+  const store = loadApiKeys();
   return Boolean(store[provider] && store[provider].length > 0);
 }
 
 export function setApiKey(provider: ApiProvider, value: string) {
-  const store = readJson<ApiKeyStore>(API_KEYS_FILE, {});
+  const store = loadApiKeys();
   store[provider] = value;
   writeJson(API_KEYS_FILE, store);
 }
 
 export function getApiKey(provider: ApiProvider): string | null {
-  const store = readJson<ApiKeyStore>(API_KEYS_FILE, {});
+  const store = loadApiKeys();
   return store[provider] ?? null;
 }
 
@@ -169,8 +192,13 @@ interface WorkflowStore {
   workflows: LocalWorkflow[];
 }
 
+let _workflowsCache: WorkflowStore | null = null;
+
 function loadWorkflowStore(): WorkflowStore {
-  return readJson<WorkflowStore>(WORKFLOWS_FILE, { workflows: [] });
+  if (!_workflowsCache) {
+    _workflowsCache = readJson<WorkflowStore>(WORKFLOWS_FILE, { workflows: [] });
+  }
+  return _workflowsCache;
 }
 
 export function listWorkflows(): LocalWorkflow[] {

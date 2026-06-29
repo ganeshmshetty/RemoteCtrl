@@ -8,7 +8,7 @@
 - [x] **Missing single-instance lock**: Two instances of the app can run simultaneously. Add `app.requestSingleInstanceLock()` in `index.ts`.
 
 ## 🟡 Medium Priority (UX / Performance)
-- [ ] **Blocking Sync I/O**: `storage.ts` uses `readFileSync` on every getter call. Add an in-memory cache to prevent blocking the main thread on every IPC call.
+- [x] **Blocking Sync I/O**: `storage.ts` uses `readFileSync` on every getter call. Add an in-memory cache to prevent blocking the main thread on every IPC call.
 - [ ] **Non-reactive PIN display**: `BrowserPanel.tsx` uses `useConnectionStore.getState().pin` which is a snapshot. Change to a reactive `const { pin } = useConnectionStore()`.
 - [ ] **Missing Zod validation**: `ipcMain.handle('settings:setBrowserMode')` casts `mode as any` instead of using Zod schema.
 - [ ] **No API request timeout**: `settings:fetchModels` in `ipc-handlers.ts` has no timeout, which could freeze the IPC call indefinitely.
