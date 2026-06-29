@@ -12,7 +12,9 @@
  */
 
 import { readFile, writeFile } from 'fs/promises';
+import { existsSync } from 'fs';
 import { join } from 'path';
+import { homedir } from 'os';
 import { app, BrowserWindow } from 'electron';
 import type { AgentCheckpointPayload, CheckpointResponse } from '../shared/types.js';
 
@@ -169,17 +171,37 @@ export class HumanCheckpointManager {
    * Load checkpoints from disk
    */
   async loadCheckpoints(): Promise<void> {
+    let content: string | null = null;
     try {
-      const content = await readFile(this.checkpointFile, 'utf-8');
-      const checkpoints: CheckpointQuestion[] = JSON.parse(content);
-      
-      for (const checkpoint of checkpoints) {
-        if (checkpoint.status === 'pending') {
-          this.pendingCheckpoints.set(checkpoint.id, checkpoint);
+      content = await readFile(this.checkpointFile, 'utf-8');
+    } catch (err) {
+      // If the target file doesn't exist and we're loading the default path, try migrating from legacy path
+      if (this.checkpointFile === DEFAULT_CHECKPOINT_FILE) {
+        const legacyPath = join(homedir(), '.config', 'RemoteCtrl', 'human-checkpoints.json');
+        if (existsSync(legacyPath)) {
+          try {
+            console.log(`[HumanCheckpoint] Migrating legacy checkpoints from ${legacyPath} to ${this.checkpointFile}`);
+            const legacyContent = await readFile(legacyPath, 'utf-8');
+            await writeFile(this.checkpointFile, legacyContent, 'utf-8');
+            content = legacyContent;
+          } catch (migrateErr) {
+            console.error('[HumanCheckpoint] Failed to migrate legacy checkpoints:', migrateErr);
+          }
         }
       }
-    } catch {
-      // File doesn't exist or is invalid - start fresh
+    }
+
+    if (content) {
+      try {
+        const checkpoints: CheckpointQuestion[] = JSON.parse(content);
+        for (const checkpoint of checkpoints) {
+          if (checkpoint.status === 'pending') {
+            this.pendingCheckpoints.set(checkpoint.id, checkpoint);
+          }
+        }
+      } catch (parseErr) {
+        console.error('[HumanCheckpoint] Failed to parse checkpoints:', parseErr);
+      }
     }
   }
 }
